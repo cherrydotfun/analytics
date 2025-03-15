@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image";
 import { SidebarIcon } from "lucide-react"
 
 import { SearchForm } from "@/components/search-form"
@@ -21,25 +22,34 @@ export function SiteHeader() {
   return (
     <header className="bg-background sticky top-0 z-50 flex w-full items-center border-b">
       <div className="flex h-(--header-height) w-full items-center gap-2 px-4">
+        
+        <Image
+          src="/logo/arcas.png"
+          alt="logo"
+          width={32}
+          height={32}
+          priority
+        />
+
         <Button
-          className="h-8 w-8"
+          className="h-8 w-8 block sm:hidden"
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
         >
           <SidebarIcon />
         </Button>
-        <Separator orientation="vertical" className="mr-2 h-4" />
+        <Separator orientation="vertical" className="mr-2 h-4 block sm:hidden" />
         <Breadcrumb className="hidden sm:block">
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink href="#">
-                Building Your Application
+                Home
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+              <BreadcrumbPage>Account</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
