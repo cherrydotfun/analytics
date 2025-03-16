@@ -9,9 +9,6 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 
-function AccountsGraph() {
-
-}
 
 export default function Page() {
   const graphRef = useRef(null)
@@ -20,58 +17,33 @@ export default function Page() {
     const cy = cytoscape({
      container: graphRef.current,
      elements: [
-       { data: { id: 'a' } },
+      // nodes
+       { data: { id: 'a', label: 'test' } },
        { data: { id: 'b' } },
+       { data: { id: 'c' } },
+      //  edges
        {
          data: {
            id: 'ab',
            source: 'a',
            target: 'b'
          }
-       }]
+       }],
+        style: [
+          {
+            selector: 'node',
+            style: {
+              'label': 'data(id)',
+              'color': '#fff'
+            }
+          },
+        ]
      })
     }
    
     useEffect(() => {
      drawGraph()
     }, [])
-  
-  
-
-  // const cy = cytoscape({
-  //   container: document.getElementById('cy'),
-  //   elements: [
-  //     { data: { id: 'a' } },
-  //     { data: { id: 'b' } },
-  //     {
-  //       data: {
-  //         id: 'ab',
-  //         source: 'a',
-  //         target: 'b'
-  //       }
-  //     }
-  //   ],
-  //   style: [
-  //     {
-  //       selector: 'node',
-  //       style: {
-  //         'background-color': '#666',
-  //         'label': 'data(id)'
-  //       }
-  //     },
-  //     {
-  //       selector: 'edge',
-  //       style: {
-  //         'width': 3,
-  //         'line-color': '#ccc',
-  //         'target-arrow-color': '#ccc',
-  //         'target-arrow-shape': 'triangle'
-  //       }
-  //     }
-  //   ]
-  // });
-
-
 
   return (
     <div className="[--header-height:calc(--spacing(14))]">
