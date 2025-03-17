@@ -3,7 +3,7 @@ import React, {Fragment, useEffect, useRef} from 'react';
 import cytoscape from 'cytoscape';
 
 import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
+import { SiteHeader } from "@/components/headers/sidebar-header"
 import {
   SidebarInset,
   SidebarProvider,
