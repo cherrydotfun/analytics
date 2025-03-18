@@ -16,6 +16,7 @@ import { SiteHeader } from "@/components/headers/sidebar-header"
 
 import { ClusterBalanceCard } from "@/components/widgets/cluster-balance-card"
 import { ClusterPnlCard } from '@/components/widgets/cluster-pnl-card';
+import { ClusterAssociatedAccounts } from '@/components/widgets/cluster-accounts-card';
 
 
 const cluster = {
@@ -53,7 +54,7 @@ const cluster = {
       "address": "EdCNh8EzETJLFphW8yvdY7rDd8zBiyweiz8DU5gUUUka",
       "balance": "1000000",
       "pnlUsd": "154000",
-      "pnlPer": "15.4",
+      "pnlPerc": "15.4",
       "volumeUsd": "1000000"
     },
     {
@@ -100,8 +101,16 @@ export default function Page() {
                   </Button>
                 </div>
               </div>
-              <ClusterBalanceCard balanceUsd={cluster.balanceUsd} />
-              <ClusterPnlCard pnlPerc={cluster.pnlPerc} pnlUsd={cluster.pnlUsd} unrealizedPnlUsd={cluster.unrealizedPnlUsd} />
+
+              <div className="flex flex-col lg:flex-row  gap-4 p-4">
+                <div className="flex flex-col lg:w-1/3 gap-4">
+                  <ClusterBalanceCard balanceUsd={cluster.balanceUsd} />
+                  <ClusterPnlCard pnlPerc={cluster.pnlPerc} pnlUsd={cluster.pnlUsd} unrealizedPnlUsd={cluster.unrealizedPnlUsd} />
+                </div>
+                <ClusterAssociatedAccounts accounts={cluster.accounts} accountLinks={cluster.accountLinks} className="lg:w-2/3 flex" />
+                
+              </div>
+
             </div>
           </SidebarInset>
         </div>

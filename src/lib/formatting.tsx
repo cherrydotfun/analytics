@@ -26,4 +26,8 @@ const formatGainLoss = ( val: number, isAbs: boolean = true ) => {
     return 'N/A';
 }
 
-export { abbreviateNumber, formatGainLoss };
+const abbreviateAddress = (address: string) => {
+    return address.slice(0, 6) + "..." + address.slice(-4);
+}
+
+export { abbreviateNumber, formatGainLoss, abbreviateAddress };
