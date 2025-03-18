@@ -23,6 +23,7 @@
     "cytoscape": "^3.31.1",
     "firebase-admin": "^13.2.0",
     "lucide-react": "^0.481.0",
+    "minidenticons": "^4.2.1",
     "next": "15.2.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -1,29 +1,25 @@
 "use client";
-import React, {Fragment, useEffect, useRef} from 'react';
+import React from 'react';
 import cytoscape from 'cytoscape';
 
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/headers/sidebar-header"
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
+import { Share } from "lucide-react"
+
+import IdentityIcon from "@/components/identicon"
+
+import { AppSidebar } from "@/components/app-sidebar"
+import { SiteHeader } from "@/components/headers/sidebar-header"
 
 import { ClusterBalanceCard } from "@/components/widgets/cluster-balance-card"
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { ClusterPnlCard } from '@/components/widgets/cluster-pnl-card';
 
 
 const cluster = {
-  id: "73WakrfVbNJBaAmhQtEeDv",
+  id: "73WakrfVbNJBaAmhQtEeDv1",
   name: "Cluster 1",
   balanceUsd: 1234567.89,
   pnlPerc: 15.4,
@@ -78,6 +74,7 @@ const cluster = {
 
 }
 
+
 export default function Page() {
   return (
     <div className="[--header-height:calc(--spacing(14))]">
@@ -87,12 +84,20 @@ export default function Page() {
           <AppSidebar />
           <SidebarInset>
             <div className="flex flex-1 flex-col gap-4 p-4">
-              <div>
-                <div>
-
+              <div className="flex flex-row justify-between">
+                <div className="flex flex-row">
+                  <div className="mr-4">
+                  <IdentityIcon username={cluster.id} width={50} style={{"backgroundColor": "#ccc", "borderRadius": "50%"}} />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold">{cluster.name}</h1>
+                    <p className="text-xs text-gray-400">Private cluster</p>
+                  </div>
                 </div>
-                <div>
-                  
+                <div className="flex flex-row">
+                  <Button>
+                    <Share /> Share
+                  </Button>
                 </div>
               </div>
               <ClusterBalanceCard balanceUsd={cluster.balanceUsd} />
