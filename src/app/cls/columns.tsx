@@ -5,7 +5,7 @@ type Cluster = {
     id: string
     name: string
     nAccounts: number
-    pnlPercent: number
+    pnlPerc: number
 }
 
 export const data: Cluster[] = [
@@ -13,13 +13,13 @@ export const data: Cluster[] = [
         id: "728ed52f",
         name: "My accounts",
         nAccounts: 100,
-        pnlPercent: 15.4,
+        pnlPerc: 15.4,
     },
     {
         id: "489e1d42",
         name: "Trump's team accounts",
         nAccounts: 125,
-        pnlPercent: -99.9,
+        pnlPerc: -99.9,
     },
 ]
 
@@ -35,8 +35,8 @@ export const columns: ColumnDef<Cluster>[] = [
         accessorKey: "nAccounts",
     },
     {
-        id: "pnlPercent",
+        id: "pnlPerc",
         header: "PnL %",
-        accessorKey: "pnlPercent",
+        accessorKey: "pnlPerc",
     },
 ]
