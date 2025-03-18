@@ -9,6 +9,8 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 
+import { data, columns } from "./columns"
+import { DataTable } from "./data-table"
 
 export default function Page() {
 
@@ -21,12 +23,9 @@ export default function Page() {
           <AppSidebar />
           <SidebarInset>
             <div className="flex flex-1 flex-col gap-4 p-4">
-              {/* <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                
-              </div> */}
-              <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min">
 
-              </div>
+            <DataTable columns={columns} data={data} />
+
             </div>
           </SidebarInset>
         </div>
