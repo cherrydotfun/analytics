@@ -89,7 +89,7 @@ export default function Page() {
             <div className="flex flex-row justify-between">
               <div className="flex flex-row">
                 <div className="mr-4">
-                <IdentityIcon username={cluster.id} width={50} style={{"backgroundColor": "#ccc", "borderRadius": "50%"}} />
+                <IdentityIcon username={cluster.id} width={50} style={{"backgroundColor": "#333", "borderRadius": "50%"}} />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold">{cluster.name}</h1>

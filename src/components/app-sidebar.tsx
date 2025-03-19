@@ -32,8 +32,8 @@ import {
 
 const data = {
   user: {
-    id: "whatever",
-    name: "user",
+    id: "123",
+    name: "degen",
     // email: "m@example.com",
     // avatar: "",
   },

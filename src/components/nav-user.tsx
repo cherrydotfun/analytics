@@ -50,7 +50,7 @@ export function NavUser({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <IdentityIcon username={user.id} width={25} height={25} style={{"backgroundColor": "#ccc", "borderRadius": "50%"}}/>
+              <IdentityIcon username={user.id} width={25} height={25} style={{"backgroundColor": "#333", "borderRadius": "50%"}}/>
               {/* <Avatar >
                 <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback className="rounded-lg">CN</AvatarFallback>
