@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image";
-import { SidebarIcon } from "lucide-react"
+import { Menu } from "lucide-react"
 
 import { SearchForm } from "@/components/search-header"
 import {
@@ -23,32 +23,25 @@ export function SiteHeader() {
     <header className="bg-background sticky top-0 z-50 flex w-full items-center border-b">
       <div className="flex h-(--header-height) w-full items-center gap-2 px-4">
         
-        <a href="/" className="text-2xl font-bold text-primary">
+        <a href="/" className="text-2xl font-bold text-primary hidden sm:block">
             {process.env.NEXT_PUBLIC_APP_NAME}
         </a>
 
+        <a href="/" className="text-2xl font-bold text-primary block sm:hidden">
+            {process.env.NEXT_PUBLIC_APP_EMOJI}
+        </a>
+
+        
+
+
         <Button
-          className="h-8 w-8 block sm:hidden"
+          className="h-8 w-8 block sm:hidden items-center"
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
         >
-          <SidebarIcon />
+          <Menu />
         </Button>
-        <Separator orientation="vertical" className="mr-2 h-4 block sm:hidden" />
-        <Breadcrumb className="hidden sm:block">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="#">
-                Home
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Account</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
         <SearchForm className="w-full sm:ml-auto sm:w-auto" />
       </div>
     </header>

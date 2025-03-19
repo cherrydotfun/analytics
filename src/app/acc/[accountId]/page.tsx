@@ -12,7 +12,6 @@ import {
 import useTitle from '@/hooks/use-title';
 
 
-
 export default function Page() {
   const { accountId } = useParams<{ accountId: string }>();
   useTitle(`Account ${accountId}`)
@@ -50,6 +49,12 @@ export default function Page() {
     useEffect(() => {
      drawGraph()
     }, [])
+
+    useEffect(() => {
+      // TODO: cy.center() works a little better
+      window.addEventListener("resize", drawGraph);
+      return () => window.removeEventListener("resize", drawGraph); // Cleanup
+    })
 
   return (
     <div className="[--header-height:calc(--spacing(14))]">
