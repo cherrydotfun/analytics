@@ -4,7 +4,7 @@ export function Header() {
     <header className="bg-background sticky top-0 z-50 flex w-full items-center border-b">
       <div className="flex h-(--header-height) w-full items-center gap-2 px-4">
         <a href="/" className="text-2xl font-bold text-primary">
-            broke.gg
+            {process.env.NEXT_PUBLIC_APP_NAME}
         </a>
       </div>
     </header>

@@ -1,9 +1,15 @@
 import Link from 'next/link'
- import React from 'react';
+import React from 'react';
+import type { Metadata } from 'next'
 
 import { Header } from "@/components/headers/header"
 import { Footer } from "@/components/footer"
 
+ 
+export const metadata: Metadata = {
+  title: 'Not found',
+  description: '',
+}
 
 export default function NotFound() {
   return (

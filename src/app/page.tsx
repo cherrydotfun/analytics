@@ -4,6 +4,7 @@ import React, {Fragment, useEffect, useRef} from 'react';
 import { Header } from "@/components/headers/header"
 import { Input } from "@/components/ui/input"
 import { Footer } from "@/components/footer"
+import { SearchForm } from "@/components/search-main"
 
 
 export default function Page() {
@@ -16,7 +17,7 @@ export default function Page() {
               <p>Track all your Solana wallets in one place—explore others’ mains and alts for forensics or copy trading.</p>
               </div>
               <div>
-                <Input placeholder="Search for an account address" className="w-md h-md" />
+                <SearchForm />
               </div>
             </div>
         </div>

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { SidebarIcon } from "lucide-react"
 
-import { SearchForm } from "@/components/search-form"
+import { SearchForm } from "@/components/search-header"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -23,13 +23,9 @@ export function SiteHeader() {
     <header className="bg-background sticky top-0 z-50 flex w-full items-center border-b">
       <div className="flex h-(--header-height) w-full items-center gap-2 px-4">
         
-        <Image
-          src="/logo/arcas.png"
-          alt="logo"
-          width={32}
-          height={32}
-          priority
-        />
+        <a href="/" className="text-2xl font-bold text-primary">
+            {process.env.NEXT_PUBLIC_APP_NAME}
+        </a>
 
         <Button
           className="h-8 w-8 block sm:hidden"

@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import cytoscape from 'cytoscape';
+import type { Metadata } from 'next';
 
 import {
   SidebarInset,
@@ -17,6 +18,7 @@ import { SiteHeader } from "@/components/headers/sidebar-header"
 import { ClusterBalanceCard } from "@/components/widgets/cluster-balance-card"
 import { ClusterPnlCard } from '@/components/widgets/cluster-pnl-card';
 import { ClusterAssociatedAccounts } from '@/components/widgets/cluster-accounts-card';
+import useTitle from '@/hooks/use-title';
 
 
 const cluster = {
@@ -72,49 +74,48 @@ const cluster = {
       "volumeUsd": "1000000"
     },
   ]
-
 }
 
-
 export default function Page() {
+  useTitle(cluster.name)
   return (
-    <div className="[--header-height:calc(--spacing(14))]">
-      <SidebarProvider className="flex flex-col">
-        <SiteHeader />
-        <div className="flex flex-1">
-          <AppSidebar />
-          <SidebarInset>
-            <div className="flex flex-1 flex-col gap-4 p-4">
-              <div className="flex flex-row justify-between">
-                <div className="flex flex-row">
-                  <div className="mr-4">
-                  <IdentityIcon username={cluster.id} width={50} style={{"backgroundColor": "#ccc", "borderRadius": "50%"}} />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold">{cluster.name}</h1>
-                    <p className="text-xs text-gray-400">Private cluster</p>
-                  </div>
+  <div className="[--header-height:calc(--spacing(14))]">
+    <SidebarProvider className="flex flex-col">
+      <SiteHeader />
+      <div className="flex flex-1">
+        <AppSidebar />
+        <SidebarInset>
+          <div className="flex flex-1 flex-col gap-4 p-4">
+            <div className="flex flex-row justify-between">
+              <div className="flex flex-row">
+                <div className="mr-4">
+                <IdentityIcon username={cluster.id} width={50} style={{"backgroundColor": "#ccc", "borderRadius": "50%"}} />
                 </div>
-                <div className="flex flex-row">
-                  <Button>
-                    <Share /> Share
-                  </Button>
+                <div>
+                  <h1 className="text-2xl font-bold">{cluster.name}</h1>
+                  <p className="text-xs text-gray-400">Private cluster</p>
                 </div>
               </div>
-
-              <div className="flex flex-col lg:flex-row  gap-4 p-4">
-                <div className="flex flex-col lg:w-1/3 gap-4">
-                  <ClusterBalanceCard balanceUsd={cluster.balanceUsd} />
-                  <ClusterPnlCard pnlPerc={cluster.pnlPerc} pnlUsd={cluster.pnlUsd} unrealizedPnlUsd={cluster.unrealizedPnlUsd} />
-                </div>
-                <ClusterAssociatedAccounts accounts={cluster.accounts} accountLinks={cluster.accountLinks} className="lg:w-2/3 flex" />
-                
+              <div className="flex flex-row">
+                <Button>
+                  <Share /> Share
+                </Button>
               </div>
-
             </div>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
-    </div>
+
+            <div className="flex flex-col lg:flex-row  gap-4 p-4">
+              <div className="flex flex-col lg:w-1/3 gap-4">
+                <ClusterBalanceCard balanceUsd={cluster.balanceUsd} />
+                <ClusterPnlCard pnlPerc={cluster.pnlPerc} pnlUsd={cluster.pnlUsd} unrealizedPnlUsd={cluster.unrealizedPnlUsd} />
+              </div>
+              <ClusterAssociatedAccounts accounts={cluster.accounts} accountLinks={cluster.accountLinks} className="lg:w-2/3 flex" />
+              
+            </div>
+
+          </div>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  </div>
   )
 }
