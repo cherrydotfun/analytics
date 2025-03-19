@@ -10,7 +10,7 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchTerm.trim()) {
-      console.log(searchTerm)
+      e.preventDefault()
       router.push(`/acc/${searchTerm}`);
     }
   };
