@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "next/image"
 
 export function Footer() {
 
@@ -7,7 +7,7 @@ export function Footer() {
       <div className="flex h-(--header-height) w-full items-center gap-2 px-4 justify-center">
       
         <a href={`${process.env.NEXT_PUBLIC_TG_URL}`} target="_blank" className="text-secondary mr-4">
-            <Image src="/icons/tg-logo.svg" alt="Telegram" width="24" height="24" />
+            <Image src="/icons/tg-logo.svg" alt="Telegram" width="20" height="20" />
         </a>
 
         <a href={`${process.env.NEXT_PUBLIC_X_URL}`} target="_blank" className="text-secondary mr-4">
