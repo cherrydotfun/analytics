@@ -14,10 +14,11 @@ const abbreviateNumber = (value: number) => {
     return formattedValue + suffixes[suffixNum];
 };
 
-const formatGainLoss = ( val: number, isAbs: boolean = true ) => {
+const formatGainLoss = ( val: number, isAbs: boolean = true, shouldAbbr: boolean = false ) => {
     if(val){
         if(isAbs){
-        return val>=0 ? '▲ $' + val?.toFixed(2) : '▼ $' + (val * -1)?.toFixed(2)
+            const formattedVal = abbreviateNumber( Math.abs(val) )
+            return val>=0 ? '▲ $' + (shouldAbbr ? formattedVal : val?.toFixed(2)) : '▼ $' + (shouldAbbr ? formattedVal : (val * -1)?.toFixed(2))
         }
         else{
         return val>=0 ? '▲ ' + val?.toFixed(2) + '%' : '▼ ' + (val * -1)?.toFixed(2) + '%'

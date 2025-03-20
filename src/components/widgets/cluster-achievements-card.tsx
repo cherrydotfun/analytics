@@ -21,26 +21,22 @@ import {
     TableRow,
   } from "@/components/ui/table"
 
-import { abbreviateNumber, formatGainLoss } from "@/lib/formatting"
+import { abbreviateNumber } from "@/lib/formatting"
 
-function AccountsTable({accounts}: {accounts: any[]}) {
-    console.log('accounts', typeof accounts)
+function AchievementsTable({ achievements }: { achievements: any[] }) {
     return (
       <Table>
         {/* <TableCaption>A list of your recent invoices.</TableCaption> */}
-        <TableHeader>
+        {/* <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Address</TableHead>
-            <TableHead>Balance</TableHead>
-            <TableHead>P&L</TableHead>
+            <TableHead>Address</TableHead>
           </TableRow>
-        </TableHeader>
+        </TableHeader> */}
         <TableBody>
-          {accounts.map((account) => (
-            <TableRow key={account.address}>
-              <TableCell className="font-medium">{abbreviateAddress(account.address)}</TableCell>
-              <TableCell>${ abbreviateNumber(account.balance) }</TableCell>
-              <TableCell>{ formatGainLoss(account.pnlUsd, true, true) }</TableCell>
+          {achievements.map((achievement) => (
+            <TableRow key={achievement.id}>
+              <TableCell>{achievement.name}</TableCell>
+              {/* <TableCell>{achievement.pnlUsd}</TableCell> */}
             </TableRow>
           ))}
         </TableBody>
@@ -49,9 +45,9 @@ function AccountsTable({accounts}: {accounts: any[]}) {
 }
 
 
-export function ClusterAssociatedAccounts({
-    accounts, accountLinks, ...props
-  }: {accounts: any[], accountLinks: any[], className: string}
+export function ClusterAchievements({
+    achievements, ...props
+  }: {achievements: any[], className: string}
 ) {
 
 
@@ -59,19 +55,19 @@ export function ClusterAssociatedAccounts({
     <Card {...props}>
         <CardHeader>
             <div className="flex flex-row justify-between">
-                <CardTitle>Associated accounts</CardTitle>
-                <div className="flex flex-row gap-2">
+                <CardTitle>Achievements</CardTitle>
+                {/* <div className="flex flex-row gap-2">
                 <Button variant="outline" size="icon">
                     <List />
                 </Button>
                 <Button variant="outline" size="icon">
                     <Network />
                 </Button>
-                </div>
+                </div> */}
             </div>
         </CardHeader>
         <CardContent className="grid gap-4">
-            <AccountsTable accounts={accounts} />
+            <AchievementsTable achievements={achievements} />
         </CardContent>
     </Card>
     )

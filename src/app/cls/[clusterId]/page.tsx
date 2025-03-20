@@ -14,8 +14,12 @@ import IdentityIcon from "@/components/identicon"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/headers/sidebar-header"
 import { ClusterBalanceCard } from "@/components/widgets/cluster-balance-card"
-import { ClusterPnlCard } from '@/components/widgets/cluster-pnl-card';
-import { ClusterAssociatedAccounts } from '@/components/widgets/cluster-accounts-card';
+import { ClusterPnlCard } from "@/components/widgets/cluster-pnl-card"
+import { ClusterAssociatedAccounts } from "@/components/widgets/cluster-accounts-card"
+import { ClusterAchievements } from "@/components/widgets/cluster-achievements-card"
+import { ClusterTopHoldings } from "@/components/widgets/cluster-top-holdings-card"
+import { ClusterRecentTransactions } from "@/components/widgets/cluster-recent-txs-card"
+
 import useTitle from '@/hooks/use-title';
 
 
@@ -31,38 +35,38 @@ const cluster = {
       "ca": "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN",
       "symbol": "TRUMP",
       "name": "OFFICIAL TRUMP",
-      "valueUsd": "50230",
+      "valueUsd": 50230,
       "imageUrl": "https://arweave.net/VQrPjACwnQRmxdKBTqNwPiyo65x7LAT773t8Kd7YBzw"
     },
     {
       "ca": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
       "symbol": "$WIF",
       "name": "dogwifhat",
-      "valueUsd": "69420",
+      "valueUsd": 69420,
       "imageUrl": "https://bafkreibk3covs5ltyqxa272uodhculbr6kea6betidfwy3ajsav2vjzyum.ipfs.nftstorage.link"
     },
   ],
   accounts: [
     {
       "address": "5zsbHMxdgLUPMFPHTwCykxbbmQ6R7dd8T9vhzWKfuTdm",
-      "balance": "1000000",
-      "pnlUsd": "154000",
-      "pnlPerc": "15.4",
-      "volumeUsd": "1000000"
+      "balance": 1000000,
+      "pnlUsd": 154000,
+      "pnlPerc": 15.4,
+      "volumeUsd": 1000000
     },
     {
       "address": "EdCNh8EzETJLFphW8yvdY7rDd8zBiyweiz8DU5gUUUka",
-      "balance": "1000000",
-      "pnlUsd": "154000",
-      "pnlPerc": "15.4",
-      "volumeUsd": "1000000"
+      "balance": 1000000,
+      "pnlUsd": 154000,
+      "pnlPerc": 15.4,
+      "volumeUsd": 1000000
     },
     {
       "address": "CqrwsE7Ni9AM3EGtJ68Grg9VLwP1xJWNkc5WXjLPECN6",
-      "balance": "1000000",
-      "pnlUsd": "154000",
-      "pnlPerc": "15.4",
-      "volumeUsd": "1000000"
+      "balance": 1000000,
+      "pnlUsd": 154000,
+      "pnlPerc": 15.4,
+      "volumeUsd": 1000000
     },
   ],
   accountLinks: [
@@ -71,7 +75,18 @@ const cluster = {
       "target": "EdCNh8EzETJLFphW8yvdY7rDd8zBiyweiz8DU5gUUUka",
       "volumeUsd": "1000000"
     },
-  ]
+  ],
+  achievements: [
+    {
+      "id": "1",
+      "name": "Lost $1000",
+    },
+    {
+      "id": "2",
+      "name": "Launched 100 tokens",
+    },
+  ],
+  txs: []
 }
 
 export default function Page() {
@@ -112,22 +127,26 @@ export default function Page() {
                 <ClusterBalanceCard balanceUsd={cluster.balanceUsd} />
                 <ClusterPnlCard pnlPerc={cluster.pnlPerc} pnlUsd={cluster.pnlUsd} unrealizedPnlUsd={cluster.unrealizedPnlUsd} />
               </div>
-              <ClusterAssociatedAccounts accounts={cluster.accounts} accountLinks={cluster.accountLinks} className="lg:w-2/3 flex" />
+              <ClusterAchievements achievements={cluster.achievements} className="lg:w-2/3 flex" />
             </div>
             
             {/* metrics */}
 
-            <Tabs defaultValue="account" className="flex w-full">
+            <Tabs defaultValue="accounts" className="flex w-full">
               <TabsList>
                 <TabsTrigger value="accounts">Associated accounts</TabsTrigger>
                 <TabsTrigger value="holdings">Top holdings</TabsTrigger>
-                <TabsTrigger value="transactions">Latest transactions</TabsTrigger>
+                {/* <TabsTrigger value="transactions">Recent transactions</TabsTrigger> */}
               </TabsList>
               <TabsContent value="accounts">
                 <ClusterAssociatedAccounts accounts={cluster.accounts} accountLinks={cluster.accountLinks} className="w-full flex" />
               </TabsContent>
-              <TabsContent value="holdings"></TabsContent>
-              <TabsContent value="transactions"></TabsContent>
+              <TabsContent value="holdings">
+                <ClusterTopHoldings holdings={cluster.holdings} className="w-full flex" />
+              </TabsContent>
+              <TabsContent value="transactions">
+                <ClusterRecentTransactions txs={cluster.txs} className="w-full flex" />
+              </TabsContent>
             </Tabs>
 
           </div>
