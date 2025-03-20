@@ -2,19 +2,17 @@
 import React from 'react';
 import cytoscape from 'cytoscape';
 import type { Metadata } from 'next';
-
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Share } from "lucide-react"
+import { Share, Pencil } from "lucide-react"
 
 import IdentityIcon from "@/components/identicon"
-
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/headers/sidebar-header"
-
 import { ClusterBalanceCard } from "@/components/widgets/cluster-balance-card"
 import { ClusterPnlCard } from '@/components/widgets/cluster-pnl-card';
 import { ClusterAssociatedAccounts } from '@/components/widgets/cluster-accounts-card';
@@ -86,6 +84,8 @@ export default function Page() {
         <AppSidebar />
         <SidebarInset>
           <div className="flex flex-1 flex-col gap-4 p-4">
+
+            {/* cluster header */}
             <div className="flex flex-row justify-between">
               <div className="flex flex-row">
                 <div className="mr-4">
@@ -96,21 +96,39 @@ export default function Page() {
                   <p className="text-xs text-gray-400">Private cluster</p>
                 </div>
               </div>
-              <div className="flex flex-row">
+              <div className="flex flex-row gap-4">
+                <Button variant={'outline'}>
+                  <Pencil /> Edit
+                </Button>
                 <Button>
                   <Share /> Share
                 </Button>
               </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row  gap-4 p-4">
+            {/* cluster metrics */}
+            <div className="flex flex-col lg:flex-row  gap-4">
               <div className="flex flex-col lg:w-1/3 gap-4">
                 <ClusterBalanceCard balanceUsd={cluster.balanceUsd} />
                 <ClusterPnlCard pnlPerc={cluster.pnlPerc} pnlUsd={cluster.pnlUsd} unrealizedPnlUsd={cluster.unrealizedPnlUsd} />
               </div>
               <ClusterAssociatedAccounts accounts={cluster.accounts} accountLinks={cluster.accountLinks} className="lg:w-2/3 flex" />
-              
             </div>
+            
+            {/* metrics */}
+
+            <Tabs defaultValue="account" className="flex w-full">
+              <TabsList>
+                <TabsTrigger value="accounts">Associated accounts</TabsTrigger>
+                <TabsTrigger value="holdings">Top holdings</TabsTrigger>
+                <TabsTrigger value="transactions">Latest transactions</TabsTrigger>
+              </TabsList>
+              <TabsContent value="accounts">
+                <ClusterAssociatedAccounts accounts={cluster.accounts} accountLinks={cluster.accountLinks} className="w-full flex" />
+              </TabsContent>
+              <TabsContent value="holdings"></TabsContent>
+              <TabsContent value="transactions"></TabsContent>
+            </Tabs>
 
           </div>
         </SidebarInset>

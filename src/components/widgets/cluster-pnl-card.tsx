@@ -17,7 +17,7 @@ import {
 import { abbreviateNumber, formatGainLoss } from "@/lib/formatting"
 
 export function ClusterPnlCard({
-    pnlUsd, pnlPerc, unrealizedPnlUsd,
+    pnlUsd, pnlPerc, unrealizedPnlUsd, ...props
   }: {
     pnlUsd: number,
     pnlPerc: number, 
@@ -29,7 +29,7 @@ export function ClusterPnlCard({
     const formattedUnrealizedPnlUsd = abbreviateNumber(unrealizedPnlUsd);
     return (
     <TooltipProvider>
-    <Card className={"w-[380px]"} >
+    <Card className={"w-full"} {...props}>
         <CardHeader>
             <CardTitle>P&L</CardTitle>
         {/* <CardDescription>hello world.</CardDescription> */}

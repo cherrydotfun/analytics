@@ -17,7 +17,7 @@ import {
 import { abbreviateNumber } from "@/lib/formatting"
 
 export function ClusterBalanceCard({
-    balanceUsd,
+    balanceUsd, ...props
   }: {
     balanceUsd: number
   }) {
@@ -25,7 +25,7 @@ export function ClusterBalanceCard({
     const formattedBalance = abbreviateNumber(balanceUsd);
     return (
     <TooltipProvider>
-    <Card className={"w-[380px]"} >
+    <Card className={"w-full"} {...props}>
         <CardHeader>
             <CardTitle>Balance</CardTitle>
         {/* <CardDescription>hello world.</CardDescription> */}

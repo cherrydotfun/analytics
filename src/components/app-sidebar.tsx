@@ -17,7 +17,7 @@ import {
   TrendingUp
 } from "lucide-react"
 
-import { NavMain } from "@/components/nav-main"
+// import { NavMain } from "@/components/nav-main"
 import { NavSocial } from "@/components/nav-social"
 import { NavUser } from "@/components/nav-user"
 import {
@@ -37,20 +37,20 @@ const data = {
     // email: "m@example.com",
     // avatar: "",
   },
-  navMain: [
-    {
-      title: "Trending",
-      url: "#",
-      icon: TrendingUp,
-      isActive: true,
-    },
-    {
-      title: "Leaderboard",
-      url: "#",
-      icon: Trophy,
-      isActive: true,
-    },
-  ],
+  // navMain: [
+  //   {
+  //     title: "Trending",
+  //     url: "#",
+  //     icon: TrendingUp,
+  //     isActive: true,
+  //   },
+  //   {
+  //     title: "Leaderboard",
+  //     url: "#",
+  //     icon: Trophy,
+  //     isActive: true,
+  //   },
+  // ],
   navSocial: [
     {
       title: "Join our Telegram",
@@ -76,7 +76,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <a href="/cls/">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Eye className="size-4" />
                 </div>
@@ -90,7 +90,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <a href="/explore/">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Compass className="size-4" />
                 </div>
