@@ -64,6 +64,7 @@ export function DataTable<TData, TValue>({
                 onClick={() => {
                     router.push(`/cls/${row.original?.id}`);
                 }}
+                className="cursor-pointer"
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
