@@ -14,6 +14,10 @@ export interface IAccount {
     volumeUsd: number
 }
 
+export interface IAccountEditable extends IAccount {
+    isIncluded: boolean
+}
+
 export interface IAccountLink {
     source: string,
     target: string,
@@ -42,4 +46,4 @@ export interface ICluster {
     achievements: IAchievement[],
     txs: ITransaction[],
 }
-  
+

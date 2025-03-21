@@ -31,10 +31,13 @@ import {
 import useTitle from '@/hooks/use-title';
 import { useParams, useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
+import { IAccountEditable, ICluster } from '@/types/cluster';
+import Loader from '@/components/loader';
 
 
 function AddAccountDrawer({ isOpen, setOpenCbk, onSubmitCbk, ...props }: { isOpen: boolean, setOpenCbk: React.Dispatch<SetStateAction<boolean>>, onSubmitCbk: any }){
     const [accountAddressInput, setAccountAddressInput] = useState("")
+
     return (
     <Drawer open={isOpen} onOpenChange={(newIsOpen) => setOpenCbk(newIsOpen)}>
     <DrawerContent>
@@ -66,13 +69,35 @@ function AddAccountDrawer({ isOpen, setOpenCbk, onSubmitCbk, ...props }: { isOpe
 export default function Page() {
     const router = useRouter();
     const { clusterId } = useParams<{ clusterId: string }>();
-    const [ accounts, setAccounts ] = useState([])
+    const [isLoading, setIsLoading] = useState(false)
+    const [data, setData] = useState<ICluster | null>(null)
+
+    const [accounts, setAccounts] = useState<IAccountEditable[] | null>([])
+    const [newName, setNewName] = useState("")
+
     const [isDrawerOpen, setDrawerOpen] = useState(false)
 
     useEffect(() => {
-        setAccounts([])
-    }, [])
-    useTitle(cluster.name)
+        setIsLoading(true)
+        fetch(`/api/cluster/${clusterId}`, {method: 'GET'})
+        .then((res) => {
+            if(!res.ok) throw new Error('')
+            return res.json()
+        })
+        .then(({data: _data}) => {
+            setData(_data)
+            setAccounts(_data.accounts.map(( account: IAccountEditable ) => (
+                {
+                    ...account,
+                    isIncluded: true
+                }
+            )))
+        })
+        .catch((error) => {
+            // TODO
+        })
+        .finally(() => setIsLoading(false));
+    }, [clusterId]);
 
     const handleAddAccount = ({ accountAddress }: { accountAddress: string}) => {
 
@@ -86,16 +111,19 @@ export default function Page() {
         <div className="flex flex-1">
             <AppSidebar />
             <SidebarInset>
+            { data === null ? 
+            <Loader />
+            :
             <div className="flex flex-1 flex-col gap-4 p-4">
 
                 {/* cluster header */}
                 <div className="flex flex-row justify-between">
                 <div className="flex flex-row">
                     <div className="mr-4">
-                    <IdentityIcon username={cluster.id} width={50} style={{"backgroundColor": "#333", "borderRadius": "50%"}} />
+                    <IdentityIcon username={data.id} width={50} style={{"backgroundColor": "#333", "borderRadius": "50%"}} />
                     </div>
                     <div>
-                    <h1 className="text-2xl font-bold">{cluster.name}</h1>
+                    <h1 className="text-2xl font-bold">{data.name}</h1>
                     <p className="text-xs text-gray-400">Private cluster</p>
                     </div>
                 </div>
@@ -112,9 +140,10 @@ export default function Page() {
                 
                 {/* metrics */}
 
-                <ClusterAssociatedAccountsWizard accounts={accounts} accountLinks={cluster.accountLinks} className="w-full flex" />
+                <ClusterAssociatedAccountsWizard accounts={accounts} accountLinks={data.accountLinks} className="w-full flex" />
 
             </div>
+            }
             </SidebarInset>
         </div>
         </SidebarProvider>

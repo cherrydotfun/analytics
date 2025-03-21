@@ -22,8 +22,11 @@ import {
     TableRow,
   } from "@/components/ui/table"
 import { abbreviateNumber, formatGainLoss } from "@/lib/formatting"
+import { IAccountEditable } from "@/types/cluster";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
-function AccountsTable({accounts}: {accounts: any[]}) {
+function AccountsTable({accounts}: {accounts: IAccountEditable[]}) {
     return (
       <Table>
         {/* <TableCaption>A list of your recent invoices.</TableCaption> */}
@@ -32,6 +35,7 @@ function AccountsTable({accounts}: {accounts: any[]}) {
             <TableHead className="w-[100px]">Address</TableHead>
             <TableHead>Balance</TableHead>
             <TableHead>P&L</TableHead>
+            <TableHead>Included</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -40,6 +44,11 @@ function AccountsTable({accounts}: {accounts: any[]}) {
               <TableCell className="font-medium">{abbreviateAddress(account.address)}</TableCell>
               <TableCell>${ abbreviateNumber(account.balance) }</TableCell>
               <TableCell>{ formatGainLoss(account.pnlUsd, true, true) }</TableCell>
+              <TableCell className="flex flex-row">
+                <Switch id={`acc-${account.address}`} className="cursor-pointer data-[state=checked]:bg-green-500 mr-2" checked={account.isIncluded} />
+                <Label htmlFor={`acc-${account.address}`}>{ account.isIncluded ? "Yes" : "No" }</Label>
+                
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
