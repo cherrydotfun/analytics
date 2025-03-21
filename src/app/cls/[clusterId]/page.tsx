@@ -1,5 +1,5 @@
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import cytoscape from 'cytoscape';
 import type { Metadata } from 'next';
 import {
@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Share, Pencil } from "lucide-react"
+import { Share, Pencil, List, Network } from "lucide-react"
 
 import IdentityIcon from "@/components/identicon"
 import { AppSidebar } from "@/components/app-sidebar"
