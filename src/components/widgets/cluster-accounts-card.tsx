@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import cytoscape from 'cytoscape';
 import { List, Network } from "lucide-react"
+import { useRouter } from "next/navigation";
 
 import {
     Card,
@@ -23,7 +24,9 @@ import {
   } from "@/components/ui/table"
 import { abbreviateNumber, formatGainLoss } from "@/lib/formatting"
 
+
 function AccountsTable({accounts}: {accounts: any[]}) {
+  const router = useRouter();
     return (
       <Table>
         {/* <TableCaption>A list of your recent invoices.</TableCaption> */}
@@ -36,8 +39,8 @@ function AccountsTable({accounts}: {accounts: any[]}) {
         </TableHeader>
         <TableBody>
           {accounts.map((account) => (
-            <TableRow key={account.address}>
-              <TableCell className="font-medium">{abbreviateAddress(account.address)}</TableCell>
+            <TableRow key={account.address} className="cursor-pointer" onClick={() => router.push(`/acc/${account.address}`)}>
+              <TableCell>{ abbreviateAddress(account.address) }</TableCell>
               <TableCell>${ abbreviateNumber(account.balance) }</TableCell>
               <TableCell>{ formatGainLoss(account.pnlUsd, true, true) }</TableCell>
             </TableRow>
