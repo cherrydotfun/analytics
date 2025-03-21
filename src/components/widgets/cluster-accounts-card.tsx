@@ -51,32 +51,36 @@ function AccountsTable({accounts}: {accounts: any[]}) {
 function AccountsGraph({accounts, accountLinks}: {accounts: any[], accountLinks: any[]}) {
   const graphRef = useRef(null)
   
+  const nodes = accounts.map(account => ({
+    "data": {
+      "id": account.address,
+      "label": abbreviateAddress(account.address)
+    }
+  }))
+
+  const edges = accountLinks.map(link => ({
+    "data": {
+      "id": `${link.source}-${link.target}`,
+      "source": link.source,
+      "target": link.target
+    }
+  }))
+
   const drawGraph = () => {
     const cy = cytoscape({
-     container: graphRef.current,
-     elements: [
-      // nodes
-       { data: { id: 'a', label: 'test' } },
-       { data: { id: 'b' } },
-       { data: { id: 'c' } },
-      //  edges
-       {
-         data: {
-           id: 'ab',
-           source: 'a',
-           target: 'b'
-         }
-       }],
-        style: [
-          {
-            selector: 'node',
-            style: {
-              'label': 'data(id)',
-              'color': '#fff'
-            }
-          },
-        ]
+      container: graphRef.current,
+      elements: [...nodes, ...edges],
+      style: [
+        {
+          selector: 'node',
+          style: {
+            'label': 'data(label)',
+            'color': '#fff'
+          }
+        },
+      ]
      })
+     cy.panningEnabled( false );
     }
    
     useEffect(() => {
