@@ -24,6 +24,7 @@ import { ClusterRecentTransactions } from "@/components/widgets/cluster-recent-t
 import useTitle from '@/hooks/use-title';
 import Link from 'next/link';
 import { ICluster } from '@/types/cluster';
+import Loader from '@/components/loader';
 
 // TODO: check if this works: { params }: { params: { clusterId: string } }
 export default function Page() {
@@ -62,7 +63,7 @@ export default function Page() {
         <AppSidebar />
         <SidebarInset>
           { data === null ? 
-          <div>loading</div>
+          <Loader />
           :
           <div className="flex flex-1 flex-col gap-4 p-4">
             
