@@ -26,30 +26,39 @@ import useTitle from '@/hooks/use-title';
 import Link from 'next/link';
 import { ICluster } from '@/types/cluster';
 import Loader from '@/components/loader';
+import { toast } from 'sonner';
+import { RefreshPageButton } from '@/components/refresh-page-button';
 
 // TODO: check if this works: { params }: { params: { clusterId: string } }
 export default function Page() {
   const router = useRouter();
-  const { clusterId } = useParams<{ clusterId: string }>();
+  const { accountAddress } = useParams<{ accountAddress: string }>();
   const [isLoading, setIsLoading] = useState(false)
   const [data, setData] = useState<ICluster | null>(null)
 
   useEffect(() => {
     setIsLoading(true)
-    fetch(`/api/cluster/${clusterId}`, {method: 'GET'})
+    fetch(`/api/account/${accountAddress}`, {method: 'GET'})
       .then((res) => {
-        if(!res.ok) throw new Error('')
+        if(!res.ok) throw new Error('Bad response from server')
         return res.json()
       })
-      .then(({data: _data}) => {
-        console.log(data)
-        setData(_data)
+      .then(({ data: payload }) => {
+        if(typeof payload === 'object' || typeof payload?.id === 'string' ){
+          setData(payload)
+        }else{
+          throw new Error('Invalid response from server')
+        }
       })
       .catch((error) => {
-        // TODO
+        toast.error('Error occurred', {
+            duration: Infinity,
+            description: error.message || "",
+            action: <RefreshPageButton />
+        })
       })
       .finally(() => setIsLoading(false));
-  }, [clusterId]);
+  }, [accountAddress]);
 
   // on load
   useEffect(() => {
@@ -81,7 +90,9 @@ export default function Page() {
                 </div>
               </div>
               <div className="flex flex-row gap-4">
-                <Button variant={'outline'} onClick={() => router.push(`/cls/${clusterId}/edit`)}>
+                <Button variant={'outline'} 
+                // onClick={() => router.push(`/cls/${clusterId}/edit`)}
+                >
                   <Copy /> Clone
                 </Button>
                 <Button>

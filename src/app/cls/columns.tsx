@@ -1,14 +1,8 @@
 "use client"
- import { ColumnDef } from "@tanstack/react-table"
+import { ColumnDef } from "@tanstack/react-table"
+import { IClusterSummary } from "@/types/cluster"
 
-type Cluster = {
-    id: string
-    name: string
-    nAccounts: number
-    pnlPerc: number
-}
-
-export const data: Cluster[] = [
+export const data: IClusterSummary[] = [
     {
         id: "728ed52f",
         name: "My accounts",
@@ -23,7 +17,7 @@ export const data: Cluster[] = [
     },
 ]
 
-export const columns: ColumnDef<Cluster>[] = [
+export const columns: ColumnDef<IClusterSummary>[] = [
     {
         id: "name",
         header: "Name",

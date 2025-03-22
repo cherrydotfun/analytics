@@ -33,6 +33,13 @@ export interface ITransaction {
 
 }
 
+export interface IClusterSummary {
+    id: string
+    name: string
+    nAccounts: number
+    pnlPerc: number
+}
+
 export interface ICluster {
     id: string,
     name: string,
