@@ -7,8 +7,8 @@ export function computeAssociationScore(rel: any): number {
   let score = 0;
   const inTx = rel.in?.transactionCount || 0;
   const outTx = rel.out?.transactionCount || 0;
-  const inUsd = parseFloat(rel.in?.totalUsd || "0");
-  const outUsd = parseFloat(rel.out?.totalUsd || "0");
+  const inUsd = parseFloat(rel.in?.totalUsd || '0');
+  const outUsd = parseFloat(rel.out?.totalUsd || '0');
 
   // Base logic
   if (inTx > 0 && outTx > 0) {
@@ -57,18 +57,16 @@ async function fetchRelativeWallets(address: string): Promise<any[]> {
 }
 
 /**
- * 3) BFS Approach with "level" tracking:
- *   - The root is depth=0 (we can call that "level 0" or "root").
- *   - Its children are depth=1 => "1st level connection"
- *   - Their children are depth=2 => "2nd level"
- *   - Up to depth=3 => "3rd level"
+ * 3) BFS Approach with "level" tracking and using assoc.all.totalUsd as volume:
+ *   - The root is depth=0 (level=0).
+ *   - Its children are depth=1 => level=1, etc., up to level=3 if score=100.
  *
  * Additional rules:
- *   - Skip if volumeUsd < 1
+ *   - Skip if assoc.all.totalUsd < 1
  *   - Only add (and explore) addresses with score >= 90
  *   - skip if associated length > 200 (spam)
  *   - up to 500 fetch calls
- *   - if parent's child is 100 => we allow depth=3, else depth=2 if >=90
+ *   - if parent's child is 100 => we allow depth=3, else if parent's child >=90 => depth=2
  */
 export async function getHighScoreAssociations(
   rootAddress: string
@@ -78,7 +76,7 @@ export async function getHighScoreAssociations(
 }> {
   console.log(`\n[getHighScoreAssociations] => BFS starting from root: ${rootAddress}`);
 
-  // Our BFS queue
+  // BFS queue
   const queue: Array<{
     address: string;
     depth: number;
@@ -86,23 +84,25 @@ export async function getHighScoreAssociations(
     parentScore?: number;
   }> = [];
 
-  // We'll store final data here
-  // addressesMap => address -> { volumeUsd, level }, keeping track of the minimal level at which we found it
+  // We'll store final data here:
+  // addressesMap => address -> { volumeUsd, level }
+  //   volumeUsd is the maximum we've seen for that address
+  //   level is the smallest depth at which we discovered that address
   const addressesMap = new Map<string, { volumeUsd: number; level: number }>();
   const accountLinks: Array<{ source: string; target: string; volumeUsd: string }> = [];
 
   // We track how many fetches we've done, skip if over 500
   let fetchCount = 0;
 
-  // visited => addresses we've already fetched
+  // visited => addresses we've already fetched to avoid re-fetching
   const visited = new Set<string>();
 
-  // Start with root
+  // Start with root in queue
   queue.push({
     address: rootAddress,
     depth: 0,
     parentAddress: undefined,
-    parentScore: 999, // artificially high so we always link from root
+    parentScore: 999, // artificially high so links from root are always created
   });
 
   // Put root into addressesMap with level=0, volumeUsd=0
@@ -138,15 +138,15 @@ export async function getHighScoreAssociations(
     // Sort each associated by computed score, then slice top 20
     const scored = associated.map((r) => {
       const s = computeAssociationScore(r);
-      const inUsd = parseFloat(r.in?.totalUsd || '0');
-      const outUsd = parseFloat(r.out?.totalUsd || '0');
-      const volumeUsd = inUsd + outUsd;
+      // Here is the crucial change: we use r.all?.totalUsd as the volume.
+      const assocVolumeUsd = parseFloat(r.all?.totalUsd || '0');
       return {
         address: r.entity_id,
         score: s,
-        volumeUsd,
+        volumeUsd: assocVolumeUsd,
         in: r.in,
         out: r.out,
+        all: r.all,
       };
     });
     scored.sort((a, b) => b.score - a.score);
@@ -172,25 +172,46 @@ export async function getHighScoreAssociations(
         `[BFS] => Child discovered: address=${child.address}, score=${child.score}, volumeUsd=${child.volumeUsd}`
       );
 
-      // The child's BFS depth is (depth + 1)
+      // The child's BFS depth is depth + 1
       const childDepth = depth + 1;
 
-      // If not in addressesMap yet, or we found it at a smaller depth, update
+      // If not in addressesMap yet, or discovered at a smaller depth, update
       const oldEntry = addressesMap.get(child.address);
-      if (!oldEntry || childDepth < oldEntry.level) {
-        addressesMap.set(child.address, { volumeUsd: child.volumeUsd, level: childDepth });
-        console.log(`[BFS] => Updating addressesMap for ${child.address}, level=${childDepth}, volume=${child.volumeUsd}`);
-      } else if (oldEntry && child.volumeUsd > oldEntry.volumeUsd) {
-        // If we found a bigger volume for the same address at the same or bigger depth, update
-        // (or you might keep the sum, but let's do max)
-        addressesMap.set(child.address, { volumeUsd: child.volumeUsd, level: oldEntry.level });
-        console.log(`[BFS] => Found bigger volume for same address ${child.address}, oldVol=${oldEntry.volumeUsd}, newVol=${child.volumeUsd}`);
+      if (!oldEntry) {
+        addressesMap.set(child.address, {
+          volumeUsd: child.volumeUsd,
+          level: childDepth,
+        });
+        console.log(
+          `[BFS] => Adding to addressesMap: ${child.address}, level=${childDepth}, vol=${child.volumeUsd}`
+        );
+      } else {
+        // If we found it at a smaller depth before, keep that level.
+        // But if the new volume is bigger, update it
+        if (childDepth < oldEntry.level) {
+          addressesMap.set(child.address, {
+            volumeUsd: child.volumeUsd,
+            level: childDepth,
+          });
+          console.log(
+            `[BFS] => Found smaller depth for ${child.address} => level=${childDepth}, vol=${child.volumeUsd}`
+          );
+        } else if (child.volumeUsd > oldEntry.volumeUsd) {
+          addressesMap.set(child.address, {
+            volumeUsd: child.volumeUsd,
+            level: oldEntry.level,
+          });
+          console.log(
+            `[BFS] => Found bigger volume for same address ${child.address}, oldVol=${oldEntry.volumeUsd}, newVol=${child.volumeUsd}`
+          );
+        }
       }
 
-      // If we have a parent, and parentScore >=80, we build a link
-      // (or if you want strictly parentScore===100, you can change that)
+      // If we have a parent, and parentScore >=80, we create a link
       if (parentAddress && (parentScore ?? 0) >= 80) {
-        console.log(`[BFS] => Creating link: source=${parentAddress}, target=${child.address}, volumeUsd=${child.volumeUsd}`);
+        console.log(
+          `[BFS] => Creating link: source=${parentAddress}, target=${child.address}, volumeUsd=${child.volumeUsd}`
+        );
         accountLinks.push({
           source: parentAddress,
           target: child.address,
@@ -198,41 +219,48 @@ export async function getHighScoreAssociations(
         });
       }
 
-      // Depth logic: if parent's child is 100 => allow up to depth=3, else if parent's child >=90 => up to depth=2
+      // Depth logic: allow up to level=3 if child=100, else up to level=2 if child≥90
       if (childDepth < 3 && child.score === 100) {
         // push next level
-        console.log(`[BFS] => Pushing child=${child.address} to queue with depth=${childDepth}, score=100`);
+        console.log(
+          `[BFS] => child=${child.address} => pushing to queue depth=${childDepth}, score=100`
+        );
         queue.push({
           address: child.address,
           depth: childDepth,
           parentAddress: child.address,
-          parentScore: child.score
+          parentScore: child.score,
         });
       } else if (childDepth < 2 && child.score >= 90) {
-        console.log(`[BFS] => Pushing child=${child.address} to queue with depth=${childDepth}, score>=90`);
+        console.log(
+          `[BFS] => child=${child.address} => pushing to queue depth=${childDepth}, score>=90`
+        );
         queue.push({
           address: child.address,
           depth: childDepth,
           parentAddress: child.address,
-          parentScore: child.score
+          parentScore: child.score,
         });
       }
     }
   }
 
-  // Finally, build the addresses array with { address, volumeUsd, level }
+  // Build final addresses array
   const addresses: Array<{ address: string; volumeUsd: number; level: number }> = [];
   for (const [addr, data] of addressesMap.entries()) {
     addresses.push({
       address: addr,
       volumeUsd: data.volumeUsd,
-      level: data.level
+      level: data.level,
     });
   }
 
+  // Sort by ascending level so root is first, then children, etc.
   addresses.sort((a, b) => a.level - b.level);
 
-  console.log(`[BFS] => Completed BFS. Found ${addresses.length} addresses, ${accountLinks.length} links.`);
+  console.log(
+    `[BFS] => Completed BFS. Found ${addresses.length} addresses, ${accountLinks.length} links.`
+  );
 
   return { addresses, accountLinks };
 }
