@@ -3,57 +3,83 @@
 import { NextResponse } from 'next/server';
 import { firestore } from '@/firestore';
 import { randomUUID } from 'crypto';
+import { getAssociations } from '@/lib/wallet-associations';
 
-interface CreateClusterRequest {
-  name: string;
-  addresses: string[];
-  ownerUid?: string; // Если хотим привязывать к владельцу
-}
-
-// Обработчик GET для /api/cluster => список всех clusterId
+/**
+ * GET /cluster
+ * Returns a list of all clusters.
+ */
 export async function GET() {
   try {
-    const clustersRef = firestore.collection('clusters');
-    const snapshot = await clustersRef.get();
-
-    const clusterList: Array<{ clusterId: string }> = [];
-    snapshot.forEach((doc) => {
-      clusterList.push({ clusterId: doc.id });
+    const clustersSnapshot = await firestore.collection('clusters').get();
+    const clusters: any[] = [];
+    clustersSnapshot.forEach((doc) => {
+      clusters.push({ clusterId: doc.id, ...doc.data() });
     });
-
-    return NextResponse.json(clusterList);
+    return NextResponse.json(clusters);
   } catch (error) {
-    console.error('GET /cluster Error:', error);
-    return NextResponse.json({ error: 'Failed to list clusters' }, { status: 500 });
+    console.error('Error in GET /cluster:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-// Обработчик POST для /api/cluster => создать новый кластер
+/**
+ * POST /cluster
+ * Creates a new cluster.
+ *
+ * Expects a JSON body with:
+ * {
+ *   "name": "Optional cluster name",
+ *   "wallets": ["walletAddress1", "walletAddress2", ...]
+ * }
+ *
+ * For each wallet, the endpoint retrieves its associated wallets (excluding known entities)
+ * using the shared helper, then creates a new cluster document in Firestore.
+ */
 export async function POST(request: Request) {
   try {
-    const { name, addresses, ownerUid } = (await request.json()) as CreateClusterRequest;
-    if (!name || !Array.isArray(addresses)) {
+    const body = await request.json();
+    const { name, wallets } = body;
+
+    if (!wallets || !Array.isArray(wallets) || wallets.length === 0) {
       return NextResponse.json(
-        { error: 'Invalid body: "name" (string) and "addresses" (string[]) are required' },
+        { error: 'Invalid input: "wallets" array is required' },
         { status: 400 }
       );
     }
 
+    // Compute associations for each input wallet using the shared helper.
+    const computedAssociations = [];
+    for (const wallet of wallets) {
+      const associations = await getAssociations(wallet);
+      computedAssociations.push({
+        wallet,
+        associations,
+      });
+    }
+
+    // Generate a new cluster id.
     const clusterId = randomUUID();
-    const docData = {
-      name,
-      addresses,
+
+    // Build the cluster document.
+    const clusterDoc = {
+      name: name || 'Unnamed Cluster',
+      wallets, // original input wallets
+      computedAssociations, // computed association data
       createdAt: new Date().toISOString(),
-      ownerUid: ownerUid || null,
+      owner: "user-001" // hackathon assumption
     };
 
-    // Создаём документ в коллекции "clusters"
-    await firestore.collection('clusters').doc(clusterId).set(docData);
+    // Save the new cluster document in Firestore.
+    await firestore.collection('clusters').doc(clusterId).set(clusterDoc);
 
-    // Возвращаем clusterId
-    return NextResponse.json({ status: 'ok', clusterId });
+    return NextResponse.json({
+      status: 'ok',
+      clusterId,
+      cluster: clusterDoc
+    });
   } catch (error) {
-    console.error('POST /cluster Error:', error);
+    console.error('Error in POST /cluster:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

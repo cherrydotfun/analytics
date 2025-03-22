@@ -1,20 +1,16 @@
-import * as admin from 'firebase-admin';
-// import process from 'process';
+import { initializeApp, applicationDefault, cert } from 'firebase-admin/app'
+import { getFirestore, Timestamp, FieldValue, Filter } from 'firebase-admin/firestore'
 
-const firebaseCredsJsonContent = Buffer.from(process.env.ARCAS_FIREBASE_CREDS, 'base64').toString('utf8');
-
+const firebaseCredsJsonContent = Buffer.from(process.env.CHERRY_FIREBASE_CREDS, 'base64').toString('utf8');
 
 const serviceAccount = JSON.parse(
-  firebaseCredsJsonContent as string
+    firebaseCredsJsonContent as string
 );
 
-console.log('serviceAccount: ', serviceAccount);
+initializeApp({
+  credential: cert(serviceAccount)
+});
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
+const firestore = getFirestore();
 
-const firestore = admin.firestore();
-export { firestore };
+export { firestore }
