@@ -36,8 +36,7 @@ export interface ITransaction {
 export interface IClusterSummary {
     id: string
     name: string
-    nAccounts: number
-    pnlPerc: number
+    addresses: string[]
 }
 
 export interface ICluster {
