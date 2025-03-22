@@ -1,9 +1,10 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import {
-  BookOpen,
-  Bot,
+  Eye,
+  Compass,
   Command,
   Frame,
   LifeBuoy,
@@ -16,8 +17,8 @@ import {
   TrendingUp
 } from "lucide-react"
 
-import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
+// import { NavMain } from "@/components/nav-main"
+import { NavSocial } from "@/components/nav-social"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -31,34 +32,35 @@ import {
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    id: "anonymous",
+    name: "anonymous",
+    // email: "m@example.com",
+    // avatar: "",
   },
-  navMain: [
+  // navMain: [
+  //   {
+  //     title: "Trending",
+  //     url: "#",
+  //     icon: TrendingUp,
+  //     isActive: true,
+  //   },
+  //   {
+  //     title: "Leaderboard",
+  //     url: "#",
+  //     icon: Trophy,
+  //     isActive: true,
+  //   },
+  // ],
+  navSocial: [
     {
-      title: "Trending",
-      url: "#",
-      icon: TrendingUp,
-      isActive: true,
+      title: "Join our Telegram",
+      url: process.env.NEXT_PUBLIC_TG_URL,
+      iconUrl: '/icons/tg-logo.svg',
     },
     {
-      title: "Leaderboard",
-      url: "#",
-      icon: Trophy,
-      isActive: true,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Support",
-      url: "#",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: Send,
+      title: "Follow us on X",
+      url: process.env.NEXT_PUBLIC_X_URL,
+      iconUrl: '/icons/x-logo.svg',
     },
   ]
 }
@@ -71,24 +73,40 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     >
       <SidebarHeader>
         <SidebarMenu>
+
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <a href="/cls/">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Command className="size-4" />
+                  <Eye className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Acme Inc</span>
-                  <span className="truncate text-xs">Enterprise</span>
+                  <span className="truncate font-medium">Watchlist</span>
+                  <span className="truncate text-xs">Track saved accounts</span>
                 </div>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
+          {/* <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <a href="/explore/">
+                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <Compass className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">Explore</span>
+                  <span className="truncate text-xs">Find notable accounts</span>
+                </div>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem> */}
+
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {/* <NavMain items={data.navMain} /> */}
+        <NavSocial items={data.navSocial} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
