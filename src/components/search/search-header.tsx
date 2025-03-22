@@ -3,15 +3,22 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label"
 import { SidebarInput } from "@/components/ui/sidebar"
+import { isValidSolanaAddress } from "@/lib/solana";
+import { toast } from "sonner";
 
 export function SearchForm({ ...props }: React.ComponentProps<"form">) {
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchTerm.trim()) {
+    const cleanSearchTerm = searchTerm.trim()
+    if (e.key === "Enter" && cleanSearchTerm) {
       e.preventDefault()
-      router.push(`/acc/${searchTerm}`);
+      if(isValidSolanaAddress(cleanSearchTerm)){
+        router.push(`/acc/${searchTerm}`);
+      }else{
+        toast.error('Please enter a valid Solana account address (public key)')
+      }
     }
   };
 
