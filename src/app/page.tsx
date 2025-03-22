@@ -14,7 +14,7 @@ export default function Page() {
         <div className="flex flex-1 grow bg-gradient-to-br from-[#020618] to-[#140033]" >
             <div className="flex flex-1 flex-col gap-4 p-4 justify-center items-center">
               <div className="mb-4">
-              <p>Track all your Solana wallets in one place—explore others’ mains and alts for forensics or copy trading.</p>
+              <p className="text-center">Track all your Solana wallets in one place—explore others’ mains and alts for forensics or copy trading.</p>
               </div>
               <div>
                 <SearchForm />
