@@ -33,17 +33,22 @@ import { useParams, useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { IAccountEditable, ICluster } from '@/types/cluster';
 import Loader from '@/components/loader';
+import { isValidSolanaAddress } from '@/lib/solana';
 
 
 function AddAccountDrawer({ isOpen, setOpenCbk, onSubmitCbk, ...props }: { isOpen: boolean, setOpenCbk: React.Dispatch<SetStateAction<boolean>>, onSubmitCbk: any }){
     const [accountAddressInput, setAccountAddressInput] = useState("")
+    
+    useEffect(() => {
+        if(!isOpen) setAccountAddressInput("")
+    }, [isOpen])
 
     return (
     <Drawer open={isOpen} onOpenChange={(newIsOpen) => setOpenCbk(newIsOpen)}>
     <DrawerContent>
         <DrawerHeader>
         <DrawerTitle>
-            <p className="text-center">Add a new account to the cluster</p>
+            <p className="text-center">Add a new account address</p>
         </DrawerTitle>
         {/* <DrawerDescription>This action cannot be undone.</DrawerDescription> */}
         </DrawerHeader>
@@ -58,9 +63,10 @@ function AddAccountDrawer({ isOpen, setOpenCbk, onSubmitCbk, ...props }: { isOpe
                 <Button
                     className="w-full"
                     onClick={() => {
-                        onSubmitCbk()
+                        onSubmitCbk({ newAddress: accountAddressInput })
                         setOpenCbk(false)
-                }}
+                    }}
+                    disabled={!isValidSolanaAddress(accountAddressInput)}
                 >
                     Add</Button>
             </div>
@@ -77,10 +83,38 @@ export default function Page() {
     const [isLoading, setIsLoading] = useState(false)
     const [data, setData] = useState<ICluster | null>(null)
 
-    const [accounts, setAccounts] = useState<IAccountEditable[] | null>([])
+    const [accounts, setAccounts] = useState<IAccountEditable[]>([])
     const [newName, setNewName] = useState("")
 
     const [isDrawerOpen, setDrawerOpen] = useState(false)
+
+    const handleToggle = (address: string) => {
+        setAccounts((prev) =>
+          prev.map((acc) =>
+            acc.address === address ? { ...acc, isIncluded: !acc.isIncluded } : acc
+          )
+        );
+    };
+
+    const handleAddAccount = ({ newAddress }: { newAddress: string}) => {
+        const isNewAccount = accounts.every(account => account.address !== newAddress)
+        if(isNewAccount){
+            const newAccount: IAccountEditable  = {
+                address: newAddress,
+                pnlPerc: 0,
+                pnlUsd: 0,
+                balance: 0,
+                volumeUsd: 0,
+                isIncluded: true
+            }
+
+            setAccounts((prev) => 
+            [
+                ...prev,
+                newAccount
+            ]);
+        }
+    }
 
     useEffect(() => {
         setIsLoading(true)
@@ -103,11 +137,6 @@ export default function Page() {
         })
         .finally(() => setIsLoading(false));
     }, [clusterId]);
-
-    const handleAddAccount = ({ accountAddress }: { accountAddress: string}) => {
-
-    }
-
 
     return (
     <div className="[--header-height:calc(--spacing(14))]">
@@ -132,10 +161,14 @@ export default function Page() {
                     <p className="text-xs text-gray-400">Private cluster</p>
                     </div>
                 </div>
-                <AddAccountDrawer isOpen={isDrawerOpen} setOpenCbk={setDrawerOpen} onSubmitCbk={handleAddAccount} />
+                <AddAccountDrawer
+                    isOpen={isDrawerOpen}
+                    setOpenCbk={setDrawerOpen}
+                    onSubmitCbk={handleAddAccount}
+                />
                 <div className="flex flex-row gap-4">
                     <Button variant={'outline'} onClick={() => setDrawerOpen(true)}>
-                        <CirclePlus /> Add new account
+                        <CirclePlus /> Add new address
                     </Button>
                     <Button>
                         <Save /> Save
@@ -145,7 +178,7 @@ export default function Page() {
                 
                 {/* metrics */}
 
-                <ClusterAssociatedAccountsWizard accounts={accounts} accountLinks={data.accountLinks} className="w-full flex" />
+                <ClusterAssociatedAccountsWizard accounts={accounts} accountLinks={data.accountLinks} onToggle={handleToggle} className="w-full flex" />
 
             </div>
             }

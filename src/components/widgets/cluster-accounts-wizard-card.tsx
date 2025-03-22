@@ -22,11 +22,11 @@ import {
     TableRow,
   } from "@/components/ui/table"
 import { abbreviateNumber, formatGainLoss } from "@/lib/formatting"
-import { IAccountEditable } from "@/types/cluster";
+import { IAccountEditable, IAccountLink } from "@/types/cluster";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
-function AccountsTable({accounts}: {accounts: IAccountEditable[]}) {
+function AccountsTable({accounts, onToggle}: {accounts: IAccountEditable[], onToggle: (address: string) => void}) {
     return (
       <Table>
         {/* <TableCaption>A list of your recent invoices.</TableCaption> */}
@@ -45,9 +45,13 @@ function AccountsTable({accounts}: {accounts: IAccountEditable[]}) {
               <TableCell>${ abbreviateNumber(account.balance) }</TableCell>
               <TableCell>{ formatGainLoss(account.pnlUsd, true, true) }</TableCell>
               <TableCell className="flex flex-row">
-                <Switch id={`acc-${account.address}`} className="cursor-pointer data-[state=checked]:bg-green-500 mr-2" checked={account.isIncluded} />
-                <Label htmlFor={`acc-${account.address}`}>{ account.isIncluded ? "Yes" : "No" }</Label>
-                
+                <Switch
+                  id={`acc-${account.address}`}
+                  className="cursor-pointer data-[state=checked]:bg-green-500 mr-2"
+                  checked={account.isIncluded}
+                  onClick={() => { onToggle( account.address )}}
+                />
+                <Label htmlFor={`acc-${account.address}`}>{ account.isIncluded ? "Included" : "Ignored" }</Label>
               </TableCell>
             </TableRow>
           ))}
@@ -57,7 +61,7 @@ function AccountsTable({accounts}: {accounts: IAccountEditable[]}) {
 }
 
 
-function AccountsGraph({accounts, accountLinks}: {accounts: any[], accountLinks: any[]}) {
+function AccountsGraph({accounts, accountLinks}: {accounts: IAccountEditable[], accountLinks: IAccountLink[]}) {
   const graphRef = useRef(null)
   
   const nodes = accounts.map(account => ({
@@ -110,8 +114,8 @@ function AccountsGraph({accounts, accountLinks}: {accounts: any[], accountLinks:
 }
 
 export function ClusterAssociatedAccountsWizard({
-    accounts, accountLinks, ...props
-  }: {accounts: any[], accountLinks: any[], className: string}
+    accounts, accountLinks, onToggle, ...props
+  }: {accounts: IAccountEditable[], accountLinks: IAccountLink[], onToggle: (address: string) => void, className: string}
 ) {
   const [assocAccVewMode, setAssocAccVewMode] = useState('list')
 
@@ -133,7 +137,7 @@ export function ClusterAssociatedAccountsWizard({
       <CardContent className="grid gap-4">
         {
         assocAccVewMode === "list" ? 
-          <AccountsTable accounts={accounts} /> : 
+          <AccountsTable accounts={accounts} onToggle={onToggle} /> : 
           <AccountsGraph accounts={accounts} accountLinks={accountLinks} />
         }
       </CardContent>
