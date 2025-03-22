@@ -115,11 +115,11 @@ export function ClusterAssociatedAccounts({
           <div className="flex flex-row justify-between">
               <CardTitle>Associated accounts</CardTitle>
               <div className="flex flex-row gap-2">
-              <Button variant={ assocAccVewMode === "list" ? "default" : "outline" } onClick={() => setAssocAccVewMode("list")} size="icon">
-                  <List />
-              </Button>
               <Button variant={ assocAccVewMode === "graph" ? "default" : "outline" } onClick={() => setAssocAccVewMode("graph")} size="icon">
                   <Network />
+              </Button>
+              <Button variant={ assocAccVewMode === "list" ? "default" : "outline" } onClick={() => setAssocAccVewMode("list")} size="icon">
+                  <List />
               </Button>
               </div>
           </div>

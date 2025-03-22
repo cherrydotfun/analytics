@@ -69,7 +69,7 @@ export default function Page() {
             
 
             {/* cluster header */}
-            <div className="flex flex-row justify-between">
+            <div className="flex flex-row justify-between items-center">
               <div className="flex flex-row">
                 <div className="mr-4">
                 <IdentityIcon username={data.id} width={50} style={{"backgroundColor": "#333", "borderRadius": "50%"}} />
