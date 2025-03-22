@@ -21,7 +21,7 @@ const formatGainLoss = ( val: number, isAbs: boolean = true, shouldAbbr: boolean
             return val>=0 ? '▲ $' + (shouldAbbr ? formattedVal : val?.toFixed(2)) : '▼ $' + (shouldAbbr ? formattedVal : (val * -1)?.toFixed(2))
         }
         else{
-        return val>=0 ? '▲ ' + val?.toFixed(2) + '%' : '▼ ' + (val * -1)?.toFixed(2) + '%'
+            return val>=0 ? '▲ ' + val?.toFixed(2) + '%' : '▼ ' + (val * -1)?.toFixed(2) + '%'
         }
     }
     return 'N/A';

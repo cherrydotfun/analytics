@@ -34,11 +34,11 @@ export async function GET(
 
     // 3) Map to aggregate top holdings across all wallets.
     const holdingsMap = new Map<string, {
-      tokenAddress: string;
+      ca: string;
       symbol: string;
       name: string;
       imageUrl: string;
-      totalValueUsd: number;
+      valueUsd: number;
     }>();
 
     // 4) Structures to merge BFS data from each wallet.
@@ -67,22 +67,22 @@ export async function GET(
         // 5b) Accumulate holdings from this wallet
         if (pnl.holdings && Array.isArray(pnl.holdings)) {
           for (const holding of pnl.holdings) {
-            const tokenAddress = holding.ca;
-            if (!tokenAddress) continue;
+            const ca = holding.ca;
+            if (!ca) continue;
             const valueUsd = parseFloat(holding.valueUsd) || 0;
-            if (holdingsMap.has(tokenAddress)) {
-              const prev = holdingsMap.get(tokenAddress)!;
-              holdingsMap.set(tokenAddress, {
+            if (holdingsMap.has(ca)) {
+              const prev = holdingsMap.get(ca)!;
+              holdingsMap.set(ca, {
                 ...prev,
-                totalValueUsd: prev.totalValueUsd + valueUsd,
+                valueUsd: prev.valueUsd + valueUsd,
               });
             } else {
-              holdingsMap.set(tokenAddress, {
-                tokenAddress,
+              holdingsMap.set(ca, {
+                ca,
                 symbol: holding.symbol,
                 name: holding.name,
                 imageUrl: holding.imageUrl,
-                totalValueUsd: valueUsd,
+                valueUsd: valueUsd,
               });
             }
           }
@@ -90,7 +90,7 @@ export async function GET(
 
         // 5c) Also fetch BFS associations for this wallet at maxDepth=1
         //     This yields addresses + addressLinks discovered from that wallet.
-        const { addresses: bfsAddresses, addressLinks: bfsLinks } =
+        const { accounts: bfsAddresses, accountLinks: bfsLinks } =
           await getHighScoreAssociations(walletAddress, 1);
 
         // Merge BFS addresses (unify duplicates by storing max volume)
@@ -119,7 +119,7 @@ export async function GET(
 
     // 6) Convert the aggregated holdings to array, sort, take top 20
     const aggregatedHoldings = Array.from(holdingsMap.values());
-    aggregatedHoldings.sort((a, b) => b.totalValueUsd - a.totalValueUsd);
+    aggregatedHoldings.sort((a, b) => b.valueUsd - a.valueUsd);
     const topHoldings = aggregatedHoldings.slice(0, 20);
 
     // 7) Build BFS "associatedNetwork" from mergedAddressesMap + mergedLinksMap
@@ -140,19 +140,23 @@ export async function GET(
 
     // 8) Build the final response
     const responseData = {
-      clusterId,
-      clusterName: name,
-      totalPnlUsd: clusterTotalPnlUsd,
-      totalUnrealizedPnlUsd: clusterTotalUnrealizedPnlUsd,
-      walletDetails,
-      topHoldings,
-      associatedNetwork: {
-        addresses: mergedAddresses,
-        addressLinks: mergedLinks,
+      id: clusterId,
+      name,
+      financials: {
+        balanceUsd: 0, // TODO
+        pnlPerc: 0, // TODO
+        pnlUsd: clusterTotalPnlUsd,
+        unrealizedPnlUsd: clusterTotalUnrealizedPnlUsd,
+        holdings: topHoldings,
       },
+      associations: {
+        accounts: mergedAddresses,
+        accountLinks: mergedLinks,
+      },
+      achievements: []
     };
 
-    return NextResponse.json(responseData);
+    return NextResponse.json({data: responseData});
   } catch (error) {
     console.error('Error in GET /cluster/[cluster_id]:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
