@@ -37,6 +37,7 @@ import { Input } from '@/components/ui/input';
 import { IAccountEditable, ICluster } from '@/types/cluster';
 import Loader from '@/components/loader';
 import { isValidSolanaAddress } from '@/lib/solana';
+import { RefreshPageButton } from '@/components/refresh-page-button';
 
 
 function AddAccountDrawer({ isOpen, setOpenCbk, onSubmitCbk, ...props }: { isOpen: boolean, setOpenCbk: React.Dispatch<SetStateAction<boolean>>, onSubmitCbk: any }){
@@ -135,20 +136,29 @@ export default function Page() {
         setIsLoading(true)
         fetch(`/api/cluster/${clusterId}`, {method: 'GET'})
         .then((res) => {
-            if(!res.ok) throw new Error('')
+            if(!res.ok) throw new Error('Bad response from server')
             return res.json()
         })
-        .then(({data: _data}) => {
-            setData(_data)
-            setAccounts(_data.accounts.map(( account: IAccountEditable ) => (
-                {
-                    ...account,
-                    isIncluded: true
-                }
-            )))
+        .then(({data: payload}) => {
+            if(typeof payload === 'object' || typeof payload?.id === 'string' ){
+                setData(payload)
+                setAccounts(payload.accounts.map(( account: IAccountEditable ) => (
+                    {
+                        ...account,
+                        isIncluded: true
+                    }
+                )))
+            }else{
+                throw new Error('Invalid response from server')
+            }
+
         })
         .catch((error) => {
-            // TODO
+            toast.error('Error occurred', {
+                duration: Infinity,
+                description: error.message || "",
+                action: <RefreshPageButton />
+            })
         })
         .finally(() => setIsLoading(false));
     }, [clusterId]);
