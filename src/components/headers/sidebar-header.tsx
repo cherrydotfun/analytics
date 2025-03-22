@@ -31,16 +31,13 @@ export function SiteHeader() {
             {process.env.NEXT_PUBLIC_APP_EMOJI}
         </a>
 
-        
-
-
         <Button
-          className="h-8 w-8 block sm:hidden items-center"
+          className="h-8 w-8 block md:hidden"
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
         >
-          <Menu />
+          <Menu className="mx-auto" />
         </Button>
         <SearchForm className="w-full sm:ml-auto sm:w-auto" />
       </div>
