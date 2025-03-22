@@ -13,10 +13,9 @@ export const columns: ColumnDef<IClusterSummary>[] = [
         header: "Accounts",
         accessorFn: (cluster) => (cluster.addresses.length || 0),
     },
-    {
-        id: "createdAt",
-        header: "Date created",
-        accessorKey: "createdAt"
-
-    }
+    // {
+    //     id: "createdAt",
+    //     header: "Date created",
+    //     accessorKey: "createdAt"
+    // }
 ]
