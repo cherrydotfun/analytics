@@ -1,4 +1,5 @@
 import * as React from "react"
+import Image from "next/image"
 import { type LucideIcon } from "lucide-react"
 
 import {
@@ -9,14 +10,14 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-export function NavSecondary({
+export function NavSocial({
   items,
   ...props
 }: {
   items: {
     title: string
     url: string
-    icon: LucideIcon
+    iconUrl: string
   }[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   return (
@@ -27,7 +28,7 @@ export function NavSecondary({
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild size="sm">
                 <a href={item.url}>
-                  <item.icon />
+                  <Image src={item.iconUrl} alt={'social logo'} width="15" height="15" />
                   <span>{item.title}</span>
                 </a>
               </SidebarMenuButton>
