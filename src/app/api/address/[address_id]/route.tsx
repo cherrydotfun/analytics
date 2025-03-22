@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import { getWalletPnl } from '@/lib/wallet-pnl';
-import { getAssociations } from '@/lib/wallet-associations';
+import { getHighScoreAssociations } from '@/lib/wallet-associations';
 
 export async function GET(
   request: Request,
@@ -15,7 +15,7 @@ export async function GET(
     const pnlData = await getWalletPnl(address);
 
     // Retrieve associated wallets for the given address.
-    const associations = await getAssociations(address);
+    const associations = await getHighScoreAssociations(address);
 
     // Build and return the final response.
     const responseData = {
