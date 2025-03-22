@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server';
 import { firestore } from '@/firestore';
 import { randomUUID } from 'crypto';
-import { getAssociations } from '@/lib/wallet-associations';
+import { getHighScoreAssociations } from '@/lib/wallet-associations';
 
 /**
  * GET /cluster
@@ -30,7 +30,7 @@ export async function GET() {
  * Expects a JSON body with:
  * {
  *   "name": "Optional cluster name",
- *   "wallets": ["walletAddress1", "walletAddress2", ...]
+ *   "addresses": ["walletAddress1", "walletAddress2", ...]
  * }
  *
  * For each wallet, the endpoint retrieves its associated wallets (excluding known entities)
@@ -39,9 +39,9 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, wallets } = body;
+    const { name, addresses } = body;
 
-    if (!wallets || !Array.isArray(wallets) || wallets.length === 0) {
+    if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
       return NextResponse.json(
         { error: 'Invalid input: "wallets" array is required' },
         { status: 400 }
@@ -49,14 +49,14 @@ export async function POST(request: Request) {
     }
 
     // Compute associations for each input wallet using the shared helper.
-    const computedAssociations = [];
-    for (const wallet of wallets) {
-      const associations = await getAssociations(wallet);
-      computedAssociations.push({
-        wallet,
-        associations,
-      });
-    }
+    // const computedAssociations = [];
+    // for (const wallet of addresses) {
+    //   const associations = await getHighScoreAssociations(wallet);
+    //   computedAssociations.push({
+    //     wallet,
+    //     associations,
+    //   });
+    // }
 
     // Generate a new cluster id.
     const clusterId = randomUUID();
@@ -64,8 +64,8 @@ export async function POST(request: Request) {
     // Build the cluster document.
     const clusterDoc = {
       name: name || 'Unnamed Cluster',
-      wallets, // original input wallets
-      computedAssociations, // computed association data
+      addresses, // original input wallets
+    //   computedAssociations, // computed association data
       createdAt: new Date().toISOString(),
       owner: "user-001" // hackathon assumption
     };

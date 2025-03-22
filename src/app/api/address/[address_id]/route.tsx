@@ -15,7 +15,7 @@ export async function GET(
     const pnlData = await getWalletPnl(address);
 
     // Retrieve associated wallets for the given address.
-    const associations = await getHighScoreAssociations(address);
+    const associations = await getHighScoreAssociations(address, 2);
 
     // Build and return the final response.
     const responseData = {

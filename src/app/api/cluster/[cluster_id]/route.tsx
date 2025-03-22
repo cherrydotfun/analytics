@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { firestore } from '@/firestore';
 import { getWalletPnl } from '@/lib/wallet-pnl';
+import { getHighScoreAssociations } from '@/lib/wallet-associations'; // <-- BFS logic
 
 export async function GET(
   request: Request,
@@ -9,7 +10,7 @@ export async function GET(
   try {
     const clusterId = params.cluster_id;
 
-    // Retrieve the cluster document from Firestore.
+    // 1) Retrieve the cluster document from Firestore.
     const clusterDoc = await firestore.collection('clusters').doc(clusterId).get();
     if (!clusterDoc.exists) {
       return NextResponse.json({ error: 'Cluster not found' }, { status: 404 });
@@ -20,7 +21,7 @@ export async function GET(
       return NextResponse.json({ error: 'No addresses found in cluster' }, { status: 400 });
     }
 
-    // Aggregators for cluster-level PNL.
+    // 2) Aggregators for cluster-level PNL.
     let clusterTotalPnlUsd = 0;
     let clusterTotalUnrealizedPnlUsd = 0;
     const walletDetails: Array<{
@@ -31,7 +32,7 @@ export async function GET(
       unrealizedPnlUsd: number;
     }> = [];
 
-    // Map to aggregate top holdings across all wallets.
+    // 3) Map to aggregate top holdings across all wallets.
     const holdingsMap = new Map<string, {
       tokenAddress: string;
       symbol: string;
@@ -40,36 +41,39 @@ export async function GET(
       totalValueUsd: number;
     }>();
 
-    // Process each wallet in the cluster.
-    await Promise.all(addresses.map(async (address: string) => {
+    // 4) Structures to merge BFS data from each wallet.
+    //    We'll unify addresses in mergedAddressesMap, and unify links in mergedLinksMap/Set.
+    //    - mergedAddressesMap: address -> max volumeUsd
+    //    - mergedLinksMap: "source->target" -> max volumeUsd
+    const mergedAddressesMap = new Map<string, number>();
+    const mergedLinksMap = new Map<string, number>();
+
+    // 5) Process each wallet in the cluster.
+    await Promise.all(addresses.map(async (walletAddress: string) => {
       try {
-        const pnl = await getWalletPnl(address);
-        // Aggregate cluster-level PNL.
+        // 5a) Get wallet PNL
+        const pnl = await getWalletPnl(walletAddress);
         clusterTotalPnlUsd += pnl.pnlUsd;
         clusterTotalUnrealizedPnlUsd += pnl.unrealizedPnlUsd;
 
         walletDetails.push({
-          address,
+          address: walletAddress,
           balanceUsd: pnl.balanceUsd,
           pnlPerc: pnl.pnlPerc,
           pnlUsd: pnl.pnlUsd,
           unrealizedPnlUsd: pnl.unrealizedPnlUsd,
         });
 
-        // Aggregate holdings from this wallet.
+        // 5b) Accumulate holdings from this wallet
         if (pnl.holdings && Array.isArray(pnl.holdings)) {
           for (const holding of pnl.holdings) {
-            // Use the 'ca' field as the token address.
             const tokenAddress = holding.ca;
             if (!tokenAddress) continue;
             const valueUsd = parseFloat(holding.valueUsd) || 0;
             if (holdingsMap.has(tokenAddress)) {
               const prev = holdingsMap.get(tokenAddress)!;
               holdingsMap.set(tokenAddress, {
-                tokenAddress,
-                symbol: prev.symbol,
-                name: prev.name,
-                imageUrl: prev.imageUrl,
+                ...prev,
                 totalValueUsd: prev.totalValueUsd + valueUsd,
               });
             } else {
@@ -83,17 +87,58 @@ export async function GET(
             }
           }
         }
+
+        // 5c) Also fetch BFS associations for this wallet at maxDepth=1
+        //     This yields addresses + addressLinks discovered from that wallet.
+        const { addresses: bfsAddresses, addressLinks: bfsLinks } =
+          await getHighScoreAssociations(walletAddress, 1);
+
+        // Merge BFS addresses (unify duplicates by storing max volume)
+        for (const addrObj of bfsAddresses) {
+          const { address, volumeUsd } = addrObj;
+          const oldVol = mergedAddressesMap.get(address) || 0;
+          if (volumeUsd > oldVol) {
+            mergedAddressesMap.set(address, volumeUsd);
+          }
+        }
+
+        // Merge BFS links (avoid duplicates by storing "source->target" in a map)
+        for (const link of bfsLinks) {
+          const key = `${link.source}->${link.target}`;
+          const oldVol = mergedLinksMap.get(key) || 0;
+          const volNum = parseFloat(link.volumeUsd || '0');
+          if (volNum > oldVol) {
+            mergedLinksMap.set(key, volNum);
+          }
+        }
+
       } catch (error) {
-        console.error(`Error processing wallet ${address}:`, error);
+        console.error(`Error processing wallet ${walletAddress}:`, error);
       }
     }));
 
-    // Convert the aggregated holdings to an array, sort by total value descending, and take the top 20.
+    // 6) Convert the aggregated holdings to array, sort, take top 20
     const aggregatedHoldings = Array.from(holdingsMap.values());
     aggregatedHoldings.sort((a, b) => b.totalValueUsd - a.totalValueUsd);
     const topHoldings = aggregatedHoldings.slice(0, 20);
 
-    // Build the final response.
+    // 7) Build BFS "associatedNetwork" from mergedAddressesMap + mergedLinksMap
+    //    -> addresses: { address, volumeUsd }[]
+    //    -> addressLinks: { source, target, volumeUsd }[]
+    const mergedAddresses: Array<{ address: string; volumeUsd: number }> = [];
+    for (const [addr, vol] of mergedAddressesMap.entries()) {
+      mergedAddresses.push({ address: addr, volumeUsd: vol });
+    }
+    mergedAddresses.sort((a, b) => b.volumeUsd - a.volumeUsd);
+
+    const mergedLinks: Array<{ source: string; target: string; volumeUsd: string }> = [];
+    for (const [key, vol] of mergedLinksMap.entries()) {
+      // key = "source->target"
+      const [source, target] = key.split('->');
+      mergedLinks.push({ source, target, volumeUsd: vol.toString() });
+    }
+
+    // 8) Build the final response
     const responseData = {
       clusterId,
       clusterName: name,
@@ -101,6 +146,10 @@ export async function GET(
       totalUnrealizedPnlUsd: clusterTotalUnrealizedPnlUsd,
       walletDetails,
       topHoldings,
+      associatedNetwork: {
+        addresses: mergedAddresses,
+        addressLinks: mergedLinks,
+      },
     };
 
     return NextResponse.json(responseData);
@@ -109,3 +158,43 @@ export async function GET(
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function PUT(
+    request: Request,
+    { params }: { params: { cluster_id: string } }
+  ) {
+    try {
+      const clusterId = params.cluster_id;
+  
+      // Parse the incoming JSON
+      const { name, addresses } = await request.json();
+  
+      // Retrieve the current doc
+      const clusterRef = firestore.collection('clusters').doc(clusterId);
+      const snapshot = await clusterRef.get();
+      if (!snapshot.exists) {
+        return NextResponse.json({ error: 'Cluster not found' }, { status: 404 });
+      }
+  
+      // Prepare updated fields. If name or addresses are missing, we won't overwrite them.
+      const existingData = snapshot.data();
+      const updatedDoc: any = {};
+  
+      if (typeof name === 'string') {
+        updatedDoc.name = name;
+      }
+      if (Array.isArray(addresses)) {
+        updatedDoc.addresses = addresses;
+      }
+  
+      // If you want to require addresses or name to be present, you could do checks here
+      // For now, we just allow partial update.
+  
+      await clusterRef.update(updatedDoc);
+  
+      return NextResponse.json({ status: 'ok', updatedFields: updatedDoc });
+    } catch (error) {
+      console.error('Error in PUT /cluster/[cluster_id]:', error);
+      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+  }
