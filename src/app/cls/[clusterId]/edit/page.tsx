@@ -42,23 +42,28 @@ function AddAccountDrawer({ isOpen, setOpenCbk, onSubmitCbk, ...props }: { isOpe
     <Drawer open={isOpen} onOpenChange={(newIsOpen) => setOpenCbk(newIsOpen)}>
     <DrawerContent>
         <DrawerHeader>
-        <DrawerTitle>Add new account to cluster</DrawerTitle>
+        <DrawerTitle>
+            <p className="text-center">Add a new account to the cluster</p>
+        </DrawerTitle>
         {/* <DrawerDescription>This action cannot be undone.</DrawerDescription> */}
         </DrawerHeader>
         <DrawerFooter>
-            <Input 
-                placeholder='Enter account address'
-                value={accountAddressInput}
-                onChange={(e) => setAccountAddressInput(e.target.value)}
-                />
-        <Button onClick={() => {
-            onSubmitCbk()
-            setOpenCbk(false)
-        }}>Add</Button>
-        <DrawerClose>
-
-            <Button variant="outline">Cancel</Button>
-        </DrawerClose>
+            <div className="flex flex-col w-full sm:w-2xl mx-auto">
+                <Input 
+                    placeholder='Enter account address'
+                    value={accountAddressInput}
+                    onChange={(e) => setAccountAddressInput(e.target.value)}
+                    className="w-full text-center mb-4"
+                    />
+                <Button
+                    className="w-full"
+                    onClick={() => {
+                        onSubmitCbk()
+                        setOpenCbk(false)
+                }}
+                >
+                    Add</Button>
+            </div>
         </DrawerFooter>
     </DrawerContent>
     </Drawer>
