@@ -101,7 +101,6 @@ function AccountsGraph({accounts, accountLinks}: {accounts: IAccountEditable[], 
     }, [])
 
     useEffect(() => {
-      console.log('test')
       // TODO: cy.center() works a little better
       window.addEventListener("resize", drawGraph);
       return () => window.removeEventListener("resize", drawGraph); // Cleanup

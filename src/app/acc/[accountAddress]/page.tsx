@@ -101,7 +101,7 @@ export default function Page() {
               </div>
             </div>
 
-            <ClusterAddToWatchlist name={data.id} accounts={data.associations.accounts} className="bg-card brightness-200" />
+            <ClusterAddToWatchlist id={data.id} accounts={data.associations.accounts} className="bg-card brightness-200" />
 
             {/* cluster metrics */}
             <div className="flex flex-col lg:flex-row  gap-4">
