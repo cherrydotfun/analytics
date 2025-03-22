@@ -71,8 +71,8 @@ export async function getHighScoreAssociations(
   rootAddress: string,
   maxDepth = 1
 ): Promise<{
-  addresses: Array<{ address: string; volumeUsd: number; level: number }>;
-  addressLinks: Array<{ source: string; target: string; volumeUsd: string }>;
+  accounts: Array<{ address: string; volumeUsd: number; level: number }>;
+  accountLinks: Array<{ source: string; target: string; volumeUsd: string }>;
 }> {
   console.log(`\n[getHighScoreAssociations] => BFS starting from root: ${rootAddress}, maxDepth=${maxDepth}`);
 
@@ -85,9 +85,9 @@ export async function getHighScoreAssociations(
   }> = [];
 
   // We'll store final data here:
-  // addressesMap => address -> { volumeUsd, level }
-  const addressesMap = new Map<string, { volumeUsd: number; level: number }>();
-  const addressLinks: Array<{ source: string; target: string; volumeUsd: string }> = [];
+  // accountsMap => address -> { volumeUsd, level }
+  const accountsMap = new Map<string, { volumeUsd: number; level: number }>();
+  const accountLinks: Array<{ source: string; target: string; volumeUsd: string }> = [];
 
   // We track how many fetches we've done, skip if over 500
   let fetchCount = 0;
@@ -103,8 +103,8 @@ export async function getHighScoreAssociations(
     parentScore: 999, // artificially high so links from root are always created
   });
 
-  // Put root into addressesMap with level=0, volumeUsd=0
-  addressesMap.set(rootAddress, { volumeUsd: 0, level: 0 });
+  // Put root into accountsMap with level=0, volumeUsd=0
+  accountsMap.set(rootAddress, { volumeUsd: 0, level: 0 });
 
   while (queue.length > 0) {
     const item = queue.shift()!;
@@ -164,19 +164,19 @@ export async function getHighScoreAssociations(
       console.log(`[BFS] => Child discovered: address=${child.address}, score=${child.score}, volume=${child.volumeUsd}`);
       const childDepth = depth + 1;
 
-      // Update addressesMap if needed
-      const oldEntry = addressesMap.get(child.address);
+      // Update accountsMap if needed
+      const oldEntry = accountsMap.get(child.address);
       if (!oldEntry) {
-        addressesMap.set(child.address, { volumeUsd: child.volumeUsd, level: childDepth });
+        accountsMap.set(child.address, { volumeUsd: child.volumeUsd, level: childDepth });
         console.log(`[BFS] => New address => ${child.address}, level=${childDepth}, vol=${child.volumeUsd}`);
       } else {
         // If discovered at a smaller depth => keep that level
         // If discovered at same or bigger depth but bigger volume => update volume
         if (childDepth < oldEntry.level) {
-          addressesMap.set(child.address, { volumeUsd: child.volumeUsd, level: childDepth });
+          accountsMap.set(child.address, { volumeUsd: child.volumeUsd, level: childDepth });
           console.log(`[BFS] => Found smaller depth for ${child.address} => level=${childDepth}, vol=${child.volumeUsd}`);
         } else if (child.volumeUsd > oldEntry.volumeUsd) {
-          addressesMap.set(child.address, { volumeUsd: child.volumeUsd, level: oldEntry.level });
+          accountsMap.set(child.address, { volumeUsd: child.volumeUsd, level: oldEntry.level });
           console.log(`[BFS] => Found bigger volume for ${child.address}, oldVol=${oldEntry.volumeUsd}, newVol=${child.volumeUsd}`);
         }
       }
@@ -184,7 +184,7 @@ export async function getHighScoreAssociations(
       // If we have a parent, and parent's score >=80 => create link
       if (parentAddress && (parentScore ?? 0) >= 80) {
         console.log(`[BFS] => Link: ${parentAddress} -> ${child.address}, volume=${child.volumeUsd}`);
-        addressLinks.push({
+        accountLinks.push({
           source: parentAddress,
           target: child.address,
           volumeUsd: child.volumeUsd.toString(),
@@ -213,9 +213,9 @@ export async function getHighScoreAssociations(
   }
 
   // Build final addresses array
-  const addresses: Array<{ address: string; volumeUsd: number; level: number }> = [];
-  for (const [addr, data] of addressesMap.entries()) {
-    addresses.push({
+  const accounts: Array<{ address: string; volumeUsd: number; level: number }> = [];
+  for (const [addr, data] of accountsMap.entries()) {
+    accounts.push({
       address: addr,
       volumeUsd: data.volumeUsd,
       level: data.level,
@@ -223,8 +223,8 @@ export async function getHighScoreAssociations(
   }
 
   // Sort by ascending level
-  addresses.sort((a, b) => a.level - b.level);
+  accounts.sort((a, b) => a.level - b.level);
 
-  console.log(`[BFS] => BFS completed. Found ${addresses.length} addresses, ${addressLinks.length} links.`);
-  return { addresses, addressLinks };
+  console.log(`[BFS] => BFS completed. Found ${accounts.length} addresses, ${accounts.length} links.`);
+  return { accounts, accountLinks };
 }

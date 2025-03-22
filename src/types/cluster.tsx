@@ -43,13 +43,17 @@ export interface IClusterSummary {
 export interface ICluster {
     id: string,
     name: string,
-    balanceUsd: number,
-    pnlPerc: number,
-    pnlUsd: number,
-    unrealizedPnlUsd: number,
-    holdings: IHolding[],
-    accounts: IAccount[],
-    accountLinks: IAccountLink[],
+    financials: {
+        balanceUsd: number,
+        pnlPerc: number,
+        pnlUsd: number,
+        unrealizedPnlUsd: number,
+        holdings: IHolding[],
+    },
+    associations: {
+        accounts: IAccount[],
+        accountLinks: IAccountLink[],
+    }
     achievements: IAchievement[],
     txs: ITransaction[],
 }

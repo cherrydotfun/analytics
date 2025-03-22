@@ -1,6 +1,6 @@
 const abbreviateNumber = (value: number) => {
     if (value < 1000) {
-        return value.toString();
+        return value.toFixed(2).toString();
     }
   
     const suffixes = ["", "K", "M", "B", "T"];

@@ -38,7 +38,7 @@ export default function Page() {
 
   useEffect(() => {
     setIsLoading(true)
-    fetch(`/api/account/${accountAddress}`, {method: 'GET'})
+    fetch(`/api/address/${accountAddress}`, {method: 'GET'})
       .then((res) => {
         if(!res.ok) throw new Error('Bad response from server')
         return res.json()
@@ -101,13 +101,13 @@ export default function Page() {
               </div>
             </div>
 
-            <ClusterAddToWatchlist name={data.id} accounts={data.accounts} className="bg-card brightness-200" />
+            <ClusterAddToWatchlist name={data.id} accounts={data.associations.accounts} className="bg-card brightness-200" />
 
             {/* cluster metrics */}
             <div className="flex flex-col lg:flex-row  gap-4">
               <div className="flex flex-col lg:w-1/3 gap-4">
-                <ClusterBalanceCard balanceUsd={data.balanceUsd} />
-                <ClusterPnlCard pnlPerc={data.pnlPerc} pnlUsd={data.pnlUsd} unrealizedPnlUsd={data.unrealizedPnlUsd} />
+                <ClusterBalanceCard balanceUsd={data.financials.balanceUsd} />
+                <ClusterPnlCard pnlPerc={data.financials.pnlPerc} pnlUsd={data.financials.pnlUsd} unrealizedPnlUsd={data.financials.unrealizedPnlUsd} />
               </div>
               <ClusterAchievements achievements={data.achievements} className="lg:w-2/3 flex" />
             </div>
@@ -121,14 +121,14 @@ export default function Page() {
                 {/* <TabsTrigger value="transactions">Recent transactions</TabsTrigger> */}
               </TabsList>
               <TabsContent value="accounts">
-                <ClusterAssociatedAccounts accounts={data.accounts} accountLinks={data.accountLinks} className="w-full flex" />
+                <ClusterAssociatedAccounts accounts={data.associations.accounts} accountLinks={data.associations.accountLinks} className="w-full flex" />
               </TabsContent>
               <TabsContent value="holdings">
-                <ClusterTopHoldings holdings={data.holdings} className="w-full flex" />
+                <ClusterTopHoldings holdings={data.financials.holdings} className="w-full flex" />
               </TabsContent>
-              <TabsContent value="transactions">
+              {/* <TabsContent value="transactions">
                 <ClusterRecentTransactions txs={data.txs} className="w-full flex" />
-              </TabsContent>
+              </TabsContent> */}
             </Tabs>
 
           </div>
