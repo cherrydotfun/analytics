@@ -2,6 +2,8 @@
 import React, { useEffect, useState, SetStateAction } from 'react';
 import cytoscape from 'cytoscape';
 import type { Metadata } from 'next';
+import { toast } from "sonner"
+
 import {
   SidebarInset,
   SidebarProvider,
@@ -16,6 +18,7 @@ import { SiteHeader } from "@/components/headers/sidebar-header"
 import { ClusterBalanceCard } from "@/components/widgets/cluster-balance-card"
 import { ClusterPnlCard } from "@/components/widgets/cluster-pnl-card"
 import { ClusterAssociatedAccountsWizard } from "@/components/widgets/cluster-accounts-wizard-card"
+
 
 import {
     Drawer,
@@ -53,13 +56,16 @@ function AddAccountDrawer({ isOpen, setOpenCbk, onSubmitCbk, ...props }: { isOpe
         {/* <DrawerDescription>This action cannot be undone.</DrawerDescription> */}
         </DrawerHeader>
         <DrawerFooter>
-            <div className="flex flex-col w-full sm:w-2xl mx-auto">
+            <div className="flex flex-col w-full sm:w-xl md:w-2xl mx-auto">
                 <Input 
                     placeholder='Enter account address'
                     value={accountAddressInput}
                     onChange={(e) => setAccountAddressInput(e.target.value)}
-                    className="w-full text-center mb-4"
-                    />
+                    className="w-full text-center mb-2"
+                />
+                <p className="text-xs text-gray-400 mb-4 text-center">
+                    Solana account address is a 44-character base58 public key
+                </p>
                 <Button
                     className="w-full"
                     onClick={() => {
@@ -113,7 +119,16 @@ export default function Page() {
                 ...prev,
                 newAccount
             ]);
+
+            toast.success("Account has been successfully added to the list. Hit Save to update the cluster.")
         }
+        else {
+            toast.info("This address is already on the list, and has not been re-added.")
+        }
+    }
+
+    const handleSave = () => {
+        console.log(accounts)
     }
 
     useEffect(() => {
@@ -170,7 +185,7 @@ export default function Page() {
                     <Button variant={'outline'} onClick={() => setDrawerOpen(true)}>
                         <CirclePlus /> Add new address
                     </Button>
-                    <Button>
+                    <Button onClick={handleSave}>
                         <Save /> Save
                     </Button>
                 </div>
