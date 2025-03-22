@@ -124,21 +124,22 @@ export function ClusterAssociatedAccountsWizard({
       <CardHeader>
           <div className="flex flex-row justify-between">
               <CardTitle>Associated accounts</CardTitle>
-              <div className="flex flex-row gap-2">
+              {/* <div className="flex flex-row gap-2">
               <Button variant={ assocAccVewMode === "list" ? "default" : "outline" } onClick={() => setAssocAccVewMode("list")} size="icon">
                   <List />
               </Button>
               <Button variant={ assocAccVewMode === "graph" ? "default" : "outline" } onClick={() => setAssocAccVewMode("graph")} size="icon">
                   <Network />
               </Button>
-              </div>
+              </div> */}
           </div>
       </CardHeader>
       <CardContent className="grid gap-4">
         {
         assocAccVewMode === "list" ? 
           <AccountsTable accounts={accounts} onToggle={onToggle} /> : 
-          <AccountsGraph accounts={accounts} accountLinks={accountLinks} />
+          null
+          // <AccountsGraph accounts={accounts} accountLinks={accountLinks} />
         }
       </CardContent>
   </Card>
