@@ -29,7 +29,7 @@ export function ClusterPnlCard({
     const formattedUnrealizedPnlUsd = abbreviateNumber(unrealizedPnlUsd);
     return (
     <TooltipProvider>
-    <Card className={"w-full"} {...props}>
+    <Card className={"w-full h-full"} {...props}>
         <CardHeader>
             <CardTitle>P&L</CardTitle>
         {/* <CardDescription>hello world.</CardDescription> */}

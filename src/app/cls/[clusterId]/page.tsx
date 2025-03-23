@@ -145,21 +145,12 @@ export default function Page() {
                 </div>
 
                 {/* cluster metrics */}
-                <div className="flex flex-col lg:flex-row gap-4">
-                  <div className="flex flex-col lg:w-1/3 gap-4">
-                    <ClusterBalanceCard
-                      balanceUsd={data.financials?.balanceUsd || 0}
-                    />
-                    <ClusterPnlCard
-                      pnlPerc={data.financials?.pnlPerc || 0}
-                      pnlUsd={data.financials?.pnlUsd || 0}
-                      unrealizedPnlUsd={data.financials?.unrealizedPnlUsd || 0}
-                    />
+                <div className="flex flex-col lg:flex-row  gap-4">
+                  <div className="flex flex-col lg:w-1/2 gap-4">
+                    <ClusterBalanceCard balanceUsd={data.financials.balanceUsd || 0} />
                   </div>
-                  <ClusterAchievements
-                    achievements={data.achievements || []}
-                    className="lg:w-2/3 flex"
-                  />
+                  <ClusterPnlCard pnlPerc={data.financials.pnlPerc || 0} pnlUsd={data.financials.pnlUsd || 0} unrealizedPnlUsd={data.financials.unrealizedPnlUsd || 0} />
+                  {/* <ClusterAchievements achievements={data.achievements || []} className="lg:w-2/3 flex" /> */}
                 </div>
 
                 {/* tabs */}

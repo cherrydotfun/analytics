@@ -24,6 +24,24 @@ import {
   } from "@/components/ui/table"
 import { abbreviateNumber, formatGainLoss } from "@/lib/formatting"
 
+const nodeSizes = {
+  s: 10,
+  m: 20,
+  l: 30,
+}
+
+const edgeSizes = {
+  s: 1,
+  m: 3,
+  l: 5,
+}
+
+const nodeColors = {
+  "0": "#FF3C12",
+  "1": "#FFA500",
+  "2": "#00D443",
+  "default": "#fff"
+}
 
 function AccountsTable({accounts}: {accounts: any[]}) {
   const router = useRouter();
@@ -52,11 +70,15 @@ function AccountsTable({accounts}: {accounts: any[]}) {
 
 function AccountsGraph({accounts, accountLinks}: {accounts: any[], accountLinks: any[]}) {
   const graphRef = useRef(null)
-  
+
   const nodes = accounts.map(account => ({
     "data": {
       "id": account.address,
-      "label": abbreviateAddress(account.address)
+      "label": abbreviateAddress(account.address),
+      "volume": account.volumeUsd,
+      "level": account.level,
+      "_size": account.volumeUsd < 1000 ? nodeSizes.s : account.volumeUsd < 10000 ? nodeSizes.m : nodeSizes.l,
+      "_color": nodeColors[account.level+"" in nodeColors ? account.level+"" : "default"]
     }
   }))
 
@@ -64,7 +86,8 @@ function AccountsGraph({accounts, accountLinks}: {accounts: any[], accountLinks:
     "data": {
       "id": `${link.source}-${link.target}`,
       "source": link.source,
-      "target": link.target
+      "target": link.target,
+      "_size": link.volumeUsd < 1000 ? edgeSizes.s : link.volumeUsd < 10000 ? edgeSizes.m : edgeSizes.l,
     }
   }))
 
@@ -77,9 +100,19 @@ function AccountsGraph({accounts, accountLinks}: {accounts: any[], accountLinks:
           selector: 'node',
           style: {
             'label': 'data(label)',
-            'color': '#fff'
+            'color': 'data(_color)',
+            'background-color': 'data(_color)',
+            'width': 'data(_size)',
+            'height': 'data(_size)',
           }
         },
+        {
+          selector: 'edge',
+          style: {
+            'width': 'data(_size)',
+            'line-color': '#ccc',
+          }
+        }
       ]
      })
      cy.panningEnabled( false );
