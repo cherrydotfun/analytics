@@ -46,6 +46,8 @@ export async function GET(
       // 2) Aggregators for cluster-level PNL
       let clusterTotalPnlUsd = 0;
       let clusterTotalUnrealizedPnlUsd = 0;
+      let clusterTotalBalanceUsd = 0;
+      let clusterPnL = [];
       const walletDetails: Array<{
         address: string;
         balanceUsd: number;
@@ -82,6 +84,8 @@ export async function GET(
           const pnl = await getWalletPnl(walletAddress);
           clusterTotalPnlUsd += pnl.pnlUsd;
           clusterTotalUnrealizedPnlUsd += pnl.unrealizedPnlUsd;
+          clusterTotalBalanceUsd += pnl.balanceUsd;
+          clusterPnL.push(pnl.pnlPerc);
 
           walletDetails.push({
             address: walletAddress,
@@ -182,8 +186,8 @@ export async function GET(
         id: clusterId,
         name,
         financials: {
-          balanceUsd: 0, // or compute if you want
-          pnlPerc: 0,
+          balanceUsd: clusterTotalBalanceUsd, // or compute if you want
+          pnlPerc: arithmeticMeanPnL(clusterPnL),
           pnlUsd: clusterTotalPnlUsd,
           unrealizedPnlUsd: clusterTotalUnrealizedPnlUsd,
           holdings: topHoldings,
@@ -248,4 +252,12 @@ export async function PUT(
     console.error('Error in PUT /cluster/[clusterId]:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
+}
+
+
+function arithmeticMeanPnL(pnlList: number[]) {
+    if (!pnlList || pnlList.length === 0) return 0;
+    
+    const sum = pnlList.reduce((acc, val) => acc + val, 0);
+    return sum / pnlList.length;
 }
