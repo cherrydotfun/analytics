@@ -24,6 +24,7 @@ import { ClusterRecentTransactions } from "@/components/widgets/cluster-recent-t
 import Loader from '@/components/loader';
 import { RefreshPageButton } from '@/components/refresh-page-button';
 import { ICluster } from '@/types/cluster';
+import { truncateHeading } from '@/lib/formatting';
 
 export default function Page() {
   const router = useRouter();
@@ -32,6 +33,8 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<ICluster | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+
+  const handleEdit = () => router.push(`/cls/${clusterId}/edit`)
 
   // We'll reference this container so we can auto-scroll
   const logContainerRef = useRef<HTMLDivElement>(null);
@@ -118,7 +121,7 @@ export default function Page() {
               <div className="flex flex-1 flex-col gap-4 p-4">
                 {/* cluster header */}
                 <div className="flex flex-row justify-between items-center">
-                  <div className="flex flex-row">
+                  <div className="flex flex-row gap-4 w-2/3">
                     <div className="mr-4">
                       <IdentityIcon
                         username={data.id || ""}
@@ -127,20 +130,32 @@ export default function Page() {
                       />
                     </div>
                     <div>
-                      <h1 className="text-2xl font-bold">{data.name}</h1>
+                      <h1 className="text-2xl font-bold">{truncateHeading(data.name)}</h1>
                       <p className="text-xs text-gray-400">Private cluster</p>
                     </div>
                   </div>
                   <div className="flex flex-row gap-4">
-                    <Button
-                      variant={'outline'}
-                      onClick={() => router.push(`/cls/${clusterId}/edit`)}
-                    >
-                      <Pencil /> Edit
-                    </Button>
-                    <Button>
-                      <Share /> Share
-                    </Button>
+                    
+                    <div className="hidden md:block">
+                      <Button variant={'outline'} onClick={handleEdit}>
+                        <Pencil /> Edit
+                      </Button>
+                    </div>
+                    <div className="block md:hidden">
+                      <Button variant={'outline'} onClick={handleEdit}>
+                        <Pencil />
+                      </Button>
+                    </div>
+                    <div className="hidden md:block">
+                      <Button>
+                        <Share /> Share
+                      </Button>
+                    </div>
+                    <div className="block md:hidden">
+                      <Button>
+                        <Share />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -184,7 +199,7 @@ export default function Page() {
             {isLoading && logs.length > 0 && (
               <div
                 ref={logContainerRef}
-                className="mt-6 p-4 border bg-black text-white rounded overflow-auto h-[200px]"
+                className="mt-6 p-4 border bg-black text-white rounded overflow-auto h-[300px]"
               >
                 {logs.map((line, i) => (
                   <div key={i} className="text-sm">

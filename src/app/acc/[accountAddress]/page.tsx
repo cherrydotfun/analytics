@@ -126,17 +126,22 @@ export default function Page() {
                       />
                     </div>
                     <div>
-                      <h1 className="text-2xl font-bold">{data.name}</h1>
+                      <h1 className="text-2xl font-bold">{truncateHeading(data.name)}</h1>
                       <p className="text-xs text-gray-400">Public cluster</p>
                     </div>
                   </div>
                   <div className="flex flex-row gap-4">
-                    <Button variant={'outline'}>
+                    {/* <Button variant={'outline'}>
                       <Copy /> Clone
-                    </Button>
+                    </Button> */}
                     <Button>
                       <Share /> Share
-                    </Button>
+                    </Button>    
+                    <div className="block md:hidden">
+                      <Button>
+                        <Share />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -187,7 +192,7 @@ export default function Page() {
             {isLoading && logs.length > 0 && (
               <div
                 ref={logsRef}
-                className="mt-6 p-4 border bg-black text-white rounded overflow-auto h-[200px]"
+                className="mt-6 p-4 border bg-black text-white rounded overflow-auto h-[300px]"
               >
                 {logs.map((line, i) => (
                   <div key={i} className="text-sm">
