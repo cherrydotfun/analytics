@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Menu } from "lucide-react"
 
-import { SearchForm } from "@/components/search-header"
+import { SearchForm } from "@/components/search/search-header"
 import {
   Breadcrumb,
   BreadcrumbItem,

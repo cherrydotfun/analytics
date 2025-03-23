@@ -32,17 +32,16 @@ function AccountsTable({accounts}: {accounts: any[]}) {
         {/* <TableCaption>A list of your recent invoices.</TableCaption> */}
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Address</TableHead>
-            <TableHead>Balance</TableHead>
-            <TableHead>P&L</TableHead>
+            <TableHead>Address</TableHead>
+            <TableHead>Volume</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {accounts.map((account) => (
             <TableRow key={account.address} className="cursor-pointer" onClick={() => router.push(`/acc/${account.address}`)}>
               <TableCell>{ abbreviateAddress(account.address) }</TableCell>
-              <TableCell>${ abbreviateNumber(account.balance) }</TableCell>
-              <TableCell>{ formatGainLoss(account.pnlUsd, true, true) }</TableCell>
+              <TableCell>${ abbreviateNumber(account.volumeUsd) }</TableCell>
+              {/* <TableCell>{ formatGainLoss(account.pnlUsd, true, true) }</TableCell> */}
             </TableRow>
           ))}
         </TableBody>
@@ -91,7 +90,6 @@ function AccountsGraph({accounts, accountLinks}: {accounts: any[], accountLinks:
     }, [])
 
     useEffect(() => {
-      console.log('test')
       // TODO: cy.center() works a little better
       window.addEventListener("resize", drawGraph);
       return () => window.removeEventListener("resize", drawGraph); // Cleanup

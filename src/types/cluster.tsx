@@ -11,7 +11,8 @@ export interface IAccount {
     balance: number,
     pnlUsd: number,
     pnlPerc: number,
-    volumeUsd: number
+    volumeUsd: number,
+    level: number
 }
 
 export interface IAccountEditable extends IAccount {
@@ -36,20 +37,23 @@ export interface ITransaction {
 export interface IClusterSummary {
     id: string
     name: string
-    nAccounts: number
-    pnlPerc: number
+    addresses: string[]
 }
 
 export interface ICluster {
     id: string,
     name: string,
-    balanceUsd: number,
-    pnlPerc: number,
-    pnlUsd: number,
-    unrealizedPnlUsd: number,
-    holdings: IHolding[],
-    accounts: IAccount[],
-    accountLinks: IAccountLink[],
+    financials: {
+        balanceUsd: number,
+        pnlPerc: number,
+        pnlUsd: number,
+        unrealizedPnlUsd: number,
+        holdings: IHolding[],
+    },
+    associations: {
+        accounts: IAccount[],
+        accountLinks: IAccountLink[],
+    }
     achievements: IAchievement[],
     txs: ITransaction[],
 }

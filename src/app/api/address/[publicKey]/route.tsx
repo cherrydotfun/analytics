@@ -3,13 +3,14 @@
 import { NextResponse } from 'next/server';
 import { getWalletPnl } from '@/lib/wallet-pnl';
 import { getHighScoreAssociations } from '@/lib/wallet-associations';
+import { abbreviateAddress } from '@/lib/formatting';
 
 export async function GET(
   request: Request,
-  { params }: { params: { address_id: string } }
+  { params }: { params: { publicKey: string } }
 ) {
   try {
-    const address = params.address_id;
+    const address = params.publicKey;
 
     // Fetch and aggregate PNL data for the given wallet.
     const pnlData = await getWalletPnl(address);
@@ -19,12 +20,14 @@ export async function GET(
 
     // Build and return the final response.
     const responseData = {
-      address,
-      pnlData,
+      id: address,
+      name: abbreviateAddress(address),
+      financials: pnlData,
       associations,
+      achievements: []
     };
 
-    return NextResponse.json(responseData);
+    return NextResponse.json({data: responseData});
   } catch (error) {
     console.error('Error in GET /address/[address_id]:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

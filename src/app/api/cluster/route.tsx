@@ -14,9 +14,9 @@ export async function GET() {
     const clustersSnapshot = await firestore.collection('clusters').get();
     const clusters: any[] = [];
     clustersSnapshot.forEach((doc) => {
-      clusters.push({ clusterId: doc.id, ...doc.data() });
+      clusters.push({ id: doc.id, ...doc.data() });
     });
-    return NextResponse.json(clusters);
+    return NextResponse.json({data: clusters});
   } catch (error) {
     console.error('Error in GET /cluster:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
     if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
       return NextResponse.json(
-        { error: 'Invalid input: "wallets" array is required' },
+        { error: 'Invalid input: "addresses" array is required' },
         { status: 400 }
       );
     }
@@ -75,8 +75,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       status: 'ok',
-      clusterId,
-      cluster: clusterDoc
+      data: {
+        id: clusterId,
+        clusterId,
+        cluster: clusterDoc,
+      }
     });
   } catch (error) {
     console.error('Error in POST /cluster:', error);

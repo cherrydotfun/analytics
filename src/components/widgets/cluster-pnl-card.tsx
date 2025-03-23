@@ -36,10 +36,7 @@ export function ClusterPnlCard({
         </CardHeader>
         <CardContent className="grid gap-4">
             <div className="flex items-center space-x-4 rounded-md">
-                <div className="text-3xl font-bold">{formattedPnlPerc}</div>
-            </div>
-            <div className="flex justify-between"> 
-                <div>Total P&L</div>
+                <div className="text-3xl font-bold">
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <div>${formattedPnlUsd}</div>
@@ -48,6 +45,11 @@ export function ClusterPnlCard({
                         <p>${pnlUsd}</p>
                     </TooltipContent>
                 </Tooltip>
+                </div>
+            </div>
+            <div className="flex justify-between"> 
+                <div>P&L %</div>
+                <div>{formattedPnlPerc}</div>
             </div>
             <div className="flex justify-between"> 
                 <div>Unrealized P&L</div>

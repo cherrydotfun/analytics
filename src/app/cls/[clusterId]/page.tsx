@@ -80,10 +80,10 @@ export default function Page() {
             <div className="flex flex-row justify-between items-center">
               <div className="flex flex-row">
                 <div className="mr-4">
-                <IdentityIcon username={data?.id || ""} width={50} style={{"backgroundColor": "#333", "borderRadius": "50%"}} />
+                <IdentityIcon username={data.id || ""} width={50} style={{"backgroundColor": "#333", "borderRadius": "50%"}} />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">{data?.name}</h1>
+                  <h1 className="text-2xl font-bold">{data.name}</h1>
                   <p className="text-xs text-gray-400">Private cluster</p>
                 </div>
               </div>
@@ -100,10 +100,10 @@ export default function Page() {
             {/* cluster metrics */}
             <div className="flex flex-col lg:flex-row  gap-4">
               <div className="flex flex-col lg:w-1/3 gap-4">
-                <ClusterBalanceCard balanceUsd={data?.balanceUsd || 0} />
-                <ClusterPnlCard pnlPerc={data?.pnlPerc || 0} pnlUsd={data?.pnlUsd || 0} unrealizedPnlUsd={data?.unrealizedPnlUsd || 0} />
+                <ClusterBalanceCard balanceUsd={data.financials.balanceUsd || 0} />
+                <ClusterPnlCard pnlPerc={data.financials.pnlPerc || 0} pnlUsd={data.financials.pnlUsd || 0} unrealizedPnlUsd={data.financials.unrealizedPnlUsd || 0} />
               </div>
-              <ClusterAchievements achievements={data?.achievements || []} className="lg:w-2/3 flex" />
+              <ClusterAchievements achievements={data.achievements || []} className="lg:w-2/3 flex" />
             </div>
             
             {/* metrics */}
@@ -115,14 +115,14 @@ export default function Page() {
                 {/* <TabsTrigger value="transactions">Recent transactions</TabsTrigger> */}
               </TabsList>
               <TabsContent value="accounts">
-                <ClusterAssociatedAccounts accounts={data?.accounts || []} accountLinks={data?.accountLinks || []} className="w-full flex" />
+                <ClusterAssociatedAccounts accounts={data.associations.accounts || []} accountLinks={data.associations.accountLinks || []} className="w-full flex" />
               </TabsContent>
               <TabsContent value="holdings">
-                <ClusterTopHoldings holdings={data?.holdings || []} className="w-full flex" />
+                <ClusterTopHoldings holdings={data.financials.holdings || []} className="w-full flex" />
               </TabsContent>
-              <TabsContent value="transactions">
-                <ClusterRecentTransactions txs={data?.txs || []} className="w-full flex" />
-              </TabsContent>
+              {/* <TabsContent value="transactions">
+                <ClusterRecentTransactions txs={data.txs || []} className="w-full flex" />
+              </TabsContent> */}
             </Tabs>
 
           </div>

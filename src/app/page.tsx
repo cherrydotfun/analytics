@@ -4,7 +4,7 @@ import React, {Fragment, useEffect, useRef} from 'react';
 import { Header } from "@/components/headers/header"
 import { Input } from "@/components/ui/input"
 import { Footer } from "@/components/footer"
-import { SearchForm } from "@/components/search-main"
+import { SearchForm } from "@/components/search/search-main"
 
 
 export default function Page() {
