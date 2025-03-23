@@ -38,7 +38,7 @@ import { IAccountEditable, ICluster } from '@/types/cluster';
 import Loader from '@/components/loader';
 import { isValidSolanaAddress } from '@/lib/solana';
 import { RefreshPageButton } from '@/components/refresh-page-button';
-import { abbreviateAddress } from '@/lib/formatting';
+import { abbreviateAddress, truncateHeading } from '@/lib/formatting';
 
 
 function AddAccountDrawer({ isOpen, setOpenCbk, onSubmitCbk, ...props }: { isOpen: boolean, setOpenCbk: React.Dispatch<SetStateAction<boolean>>, onSubmitCbk: any }){
@@ -219,7 +219,7 @@ export default function Page() {
                     <IdentityIcon username={data.id} width={50} style={{"backgroundColor": "#333", "borderRadius": "50%"}} />
                     </div>
                     <div>
-                    <h1 className="text-2xl font-bold">{data.name}</h1>
+                    <h1 className="text-2xl font-bold">{truncateHeading(data.name)}</h1>
                     <p className="text-xs text-gray-400">Private cluster</p>
                     </div>
                 </div>
@@ -229,12 +229,30 @@ export default function Page() {
                     onSubmitCbk={handleAddAccount}
                 />
                 <div className="flex flex-row gap-4">
+
+                    {/* add button */}
+                    <div className="hidden md:block">
                     <Button variant={'outline'} onClick={() => setDrawerOpen(true)}>
                         <CirclePlus /> Add new address
                     </Button>
+                    </div>
+                    <div className="block md:hidden">
+                    <Button variant={'outline'} onClick={() => setDrawerOpen(true)}>
+                        <CirclePlus />
+                    </Button>
+                    </div>
+
+                    {/* save button */}
+                    <div className="hidden md:block">
                     <Button onClick={handleSave}>
                         <Save /> Save
                     </Button>
+                    </div>
+                    <div className="block md:hidden">
+                    <Button onClick={handleSave}>
+                        <Save />
+                    </Button>
+                    </div>
                 </div>
                 </div>
                 

@@ -28,6 +28,7 @@ import { ICluster } from '@/types/cluster';
 import Loader from '@/components/loader';
 import { toast } from 'sonner';
 import { RefreshPageButton } from '@/components/refresh-page-button';
+import { truncateHeading } from '@/lib/formatting';
 
 // TODO: check if this works: { params }: { params: { clusterId: string } }
 export default function Page() {
@@ -85,19 +86,27 @@ export default function Page() {
                 <IdentityIcon username={data.id} width={50} style={{"backgroundColor": "#333", "borderRadius": "50%"}} />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">{data.name}</h1>
+                  <h1 className="text-2xl font-bold">{truncateHeading(data.name)}</h1>
                   <p className="text-xs text-gray-400">Public cluster</p>
                 </div>
               </div>
               <div className="flex flex-row gap-4">
-                <Button variant={'outline'} 
+                {/* <Button variant={'outline'} 
                 // onClick={() => router.push(`/cls/${clusterId}/edit`)}
                 >
                   <Copy /> Clone
-                </Button>
+                </Button> */}
+
+                <div className="hidden md:block">
                 <Button>
                   <Share /> Share
                 </Button>
+                </div>
+                <div className="block md:hidden">
+                  <Button>
+                    <Share />
+                  </Button>
+                </div>
               </div>
             </div>
 

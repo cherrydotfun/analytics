@@ -31,4 +31,9 @@ const abbreviateAddress = (address: string) => {
     return address.slice(0, 6) + "..." + address.slice(-4);
 }
 
-export { abbreviateNumber, formatGainLoss, abbreviateAddress };
+const truncateHeading = (text: string) => {
+    const maxLength = 20;
+    return text?.substring(0, maxLength) || ""
+}
+
+export { abbreviateNumber, formatGainLoss, abbreviateAddress, truncateHeading };
