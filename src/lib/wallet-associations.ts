@@ -1,7 +1,7 @@
 const KB_IP = process.env.CHERRY_KB;
 
 /**
- * 1) Score Calculation
+ * 1) Compute association score
  */
 export function computeAssociationScore(rel: any): number {
   let score = 0;
@@ -44,37 +44,61 @@ export function computeAssociationScore(rel: any): number {
 
 /**
  * 2) Fetch Relative Wallets
+ *    Now includes up to 2 retries (3 attempts total),
+ *    waiting 3 seconds between each retry if fetch fails or !res.ok.
  */
-async function fetchRelativeWallets(address: string): Promise<any[]> {
-  console.log(`[fetchRelativeWallets] => Fetching for ${address} ...`);
-  const res = await fetch(`${KB_IP}/getRelativeWallets?solAddress=${address}`);
-  if (!res.ok) {
-    console.error(`[fetchRelativeWallets] => Failed for ${address}`);
-    return [];
-  }
-  const data = await res.json();
-  console.log(`[fetchRelativeWallets] => Found ${data.length} for ${address}`);
+async function fetchRelativeWallets(address: string, onLog?: (msg: string) => void): Promise<any[]> {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    onLog?.(`[Fetching Relative Wallet Data] => Attempt ${attempt} for ${address} ...`);
+    try {
+      const res = await fetch(`${KB_IP}/getRelativeWallets?solAddress=${address}`);
+      if (!res.ok) {
+        throw new Error(`HTTP status: ${res.status}`);
+      }
+      const data = await res.json();
+      onLog?.(`[Fetching Relative Wallet Data] => Found ${data.length} for ${address} on attempt ${attempt}`);
 
-  // Exclude wallets that match 'address' itself or known entities
-  return data.filter((x: any) => x.address !== address && !x.knownEntity);
+      // Exclude wallets that match 'address' itself or known entities
+      return data.filter((x: any) => x.address !== address && !x.knownEntity);
+    } catch (err: any) {
+      onLog?.(`[Fetching Relative Wallet Data] => Attempt ${attempt} failed for ${address}, error: ${err.message}`);
+      if (attempt < 3) {
+        onLog?.(`[Fetching Relative Wallet Data] => Retrying in 3s...`);
+        await new Promise(res => setTimeout(res, 3000)); // wait 3s
+      } else {
+        onLog?.(`[Fetching Relative Wallet Data] => Gave up after 3 attempts for ${address}`);
+        return [];
+      }
+    }
+  }
+  // Should never reach here, but just in case
+  return [];
 }
 
 /**
- * 3) BFS Approach
+ * 3) BFS Approach with optional 'onLog' callback for streaming logs.
  *
- * @param rootAddress The root wallet
- * @param maxDepth The normal maximum depth (default=2)
- * 
- * If a parent's child has score=100, we allow going one level deeper (maxDepth+1).
+ * @param rootAddress The root wallet address.
+ * @param maxDepth The normal max depth (default=1).
+ * @param onLog Optional callback for streaming logs; if provided, we call onLog(msg) for each log line.
+ *
+ * If a child's score=100, we allow going one level deeper than maxDepth (i.e., maxDepth+1).
  */
 export async function getHighScoreAssociations(
   rootAddress: string,
-  maxDepth = 1
+  maxDepth = 1,
+  onLog?: (msg: string) => void
 ): Promise<{
   accounts: Array<{ address: string; volumeUsd: number; level: number }>;
   accountLinks: Array<{ source: string; target: string; volumeUsd: string }>;
 }> {
-  console.log(`\n[getHighScoreAssociations] => BFS starting from root: ${rootAddress}, maxDepth=${maxDepth}`);
+  const log = (msg: string) => {
+    onLog?.(msg);
+    // If you also want console logs, uncomment:
+    // console.log(msg);
+  };
+
+  log(`\n[Counting Relevance Score] => BFS from root: ${rootAddress}, maxDepth=${maxDepth}`);
 
   // BFS queue
   const queue: Array<{
@@ -84,15 +108,14 @@ export async function getHighScoreAssociations(
     parentScore?: number;
   }> = [];
 
-  // We'll store final data here:
-  // accountsMap => address -> { volumeUsd, level }
+  // We'll store final BFS data here:
   const accountsMap = new Map<string, { volumeUsd: number; level: number }>();
   const accountLinks: Array<{ source: string; target: string; volumeUsd: string }> = [];
 
   // We track how many fetches we've done, skip if over 500
   let fetchCount = 0;
 
-  // visited => addresses we've already fetched to avoid re-fetching
+  // visited => addresses we've already fetched
   const visited = new Set<string>();
 
   // Start with root in queue
@@ -100,7 +123,7 @@ export async function getHighScoreAssociations(
     address: rootAddress,
     depth: 0,
     parentAddress: undefined,
-    parentScore: 999, // artificially high so links from root are always created
+    parentScore: 999, // artificially high => root can always link to children
   });
 
   // Put root into accountsMap with level=0, volumeUsd=0
@@ -111,79 +134,74 @@ export async function getHighScoreAssociations(
     const { address, depth, parentAddress, parentScore } = item;
 
     if (visited.has(address)) {
-      console.log(`[BFS] => Already visited ${address}, skipping further fetch`);
+      log(`[BFS] => Already visited ${address}, skipping fetch`);
       continue;
     }
     visited.add(address);
 
     if (fetchCount >= 500) {
-      console.log(`[BFS] => Reached 500 fetch limit, stopping BFS`);
+      log(`[BFS] => Reached 500 fetch limit, stopping BFS`);
       break;
     }
 
-    console.log(`[BFS] => Processing address=${address}, depth=${depth}, parent=${parentAddress}, parentScore=${parentScore}`);
-    const associated = await fetchRelativeWallets(address);
+    log(`[BFS] => Processing address=${address}, depth=${depth}, parent=${parentAddress}, parentScore=${parentScore}`);
+    const associated = await fetchRelativeWallets(address, onLog);
     fetchCount++;
 
     if (associated.length > 200) {
-      console.log(`[BFS] => Address ${address} is spammy (${associated.length} > 200), skip it entirely`);
+      log(`[BFS] => Address ${address} is spammy (${associated.length}), skipping entirely`);
       continue;
     }
 
-    // Compute score + volume=assoc.all.totalUsd, sort descending, take top 20
+    // Map each association to a score + volume from all.totalUsd
     const scored = associated.map((r) => {
       const s = computeAssociationScore(r);
       const assocVolumeUsd = parseFloat(r.all?.totalUsd || '0');
       return {
-        address: r.entity_id,
+        address: r.entity_id,  // or r.address if you prefer
         score: s,
         volumeUsd: assocVolumeUsd,
-        in: r.in,
-        out: r.out,
-        all: r.all,
       };
     });
+
+    // Sort by descending score, limit to top 20
     scored.sort((a, b) => b.score - a.score);
     const top20 = scored.slice(0, 20);
 
-    console.log(`[BFS] => Found ${associated.length}, took top ${top20.length} for ${address}`);
+    log(`[BFS] => Found ${associated.length}, took most relative addresses by volume for ${address}`);
 
     for (const child of top20) {
-      // Skip if < $1 volume
       if (child.volumeUsd < 1) {
-        console.log(`[BFS] => Child ${child.address} volumeUsd=${child.volumeUsd} <1, skip.`);
+        log(`[BFS] => Child ${child.address} has low volumeUsd=${child.volumeUsd}, skip.`);
         continue;
       }
-
-      // Only proceed if child.score >=90
       if (child.score < 90) {
-        console.log(`[BFS] => Child ${child.address} has score=${child.score} <90, skip.`);
+        log(`[BFS] => Child ${child.address} has low score=${child.score}, skip.`);
         continue;
       }
 
-      console.log(`[BFS] => Child discovered: address=${child.address}, score=${child.score}, volume=${child.volumeUsd}`);
+      log(`[BFS] => Child discovered: address=${child.address}, score=${child.score}, volume=${child.volumeUsd}`);
       const childDepth = depth + 1;
 
       // Update accountsMap if needed
       const oldEntry = accountsMap.get(child.address);
       if (!oldEntry) {
         accountsMap.set(child.address, { volumeUsd: child.volumeUsd, level: childDepth });
-        console.log(`[BFS] => New address => ${child.address}, level=${childDepth}, vol=${child.volumeUsd}`);
+        log(`[BFS] => New address => ${child.address}, level=${childDepth}, vol=${child.volumeUsd}`);
       } else {
-        // If discovered at a smaller depth => keep that level
-        // If discovered at same or bigger depth but bigger volume => update volume
+        // If discovered at smaller depth => keep that. If bigger volume => update volume
         if (childDepth < oldEntry.level) {
           accountsMap.set(child.address, { volumeUsd: child.volumeUsd, level: childDepth });
-          console.log(`[BFS] => Found smaller depth for ${child.address} => level=${childDepth}, vol=${child.volumeUsd}`);
+          log(`[BFS] => Found smaller depth for ${child.address} => level=${childDepth}, vol=${child.volumeUsd}`);
         } else if (child.volumeUsd > oldEntry.volumeUsd) {
-          accountsMap.set(child.address, { volumeUsd: child.volumeUsd, level: oldEntry.level });
-          console.log(`[BFS] => Found bigger volume for ${child.address}, oldVol=${oldEntry.volumeUsd}, newVol=${child.volumeUsd}`);
+          accountsMap.set(child.address, { volumeUsd: (oldEntry.volumeUsd + child.volumeUsd), level: oldEntry.level });
+          log(`[BFS] => Found more volume for ${child.address}, vol=${child.volumeUsd}`);
         }
       }
 
-      // If we have a parent, and parent's score >=80 => create link
+      // If we have a parent with score≥80 => create a link
       if (parentAddress && (parentScore ?? 0) >= 80) {
-        console.log(`[BFS] => Link: ${parentAddress} -> ${child.address}, volume=${child.volumeUsd}`);
+        log(`[BFS] => Link: ${parentAddress} -> ${child.address}, volume=${child.volumeUsd}`);
         accountLinks.push({
           source: parentAddress,
           target: child.address,
@@ -191,9 +209,8 @@ export async function getHighScoreAssociations(
         });
       }
 
-      // Determine if we can go deeper
-      //  - If child.score=100 => allow depth up to (maxDepth + 1)
-      //  - Else child.score>=90 => allow depth up to maxDepth
+      // BFS depth logic:
+      // If child's score=100 => allow (maxDepth+1), else if≥90 => up to maxDepth
       if (child.score === 100 && childDepth < (maxDepth + 1)) {
         queue.push({
           address: child.address,
@@ -212,7 +229,7 @@ export async function getHighScoreAssociations(
     }
   }
 
-  // Build final addresses array
+  // Convert accountsMap -> final array
   const accounts: Array<{ address: string; volumeUsd: number; level: number }> = [];
   for (const [addr, data] of accountsMap.entries()) {
     accounts.push({
@@ -221,10 +238,9 @@ export async function getHighScoreAssociations(
       level: data.level,
     });
   }
-
   // Sort by ascending level
   accounts.sort((a, b) => a.level - b.level);
 
-  console.log(`[BFS] => BFS completed. Found ${accounts.length} addresses, ${accounts.length} links.`);
+  log(`[BFS] => BFS completed. Found ${accounts.length} addresses, and ${accountLinks.length} links.`);
   return { accounts, accountLinks };
 }

@@ -1,5 +1,3 @@
-// src/app/api/address/[address_id]/route.ts
-
 import { NextResponse } from 'next/server';
 import { getWalletPnl } from '@/lib/wallet-pnl';
 import { getHighScoreAssociations } from '@/lib/wallet-associations';
