@@ -39,6 +39,9 @@ export async function GET(
       name: string;
       imageUrl: string;
       valueUsd: number;
+      boughtUsd: number;
+      soldUsd: number;
+      pnlUsd: number;
     }>();
 
     // 4) Structures to merge BFS data from each wallet.
@@ -70,11 +73,17 @@ export async function GET(
             const ca = holding.ca;
             if (!ca) continue;
             const valueUsd = parseFloat(holding.valueUsd) || 0;
+            const boughtUsd = parseFloat(holding.boughtUsd) || 0;
+            const soldUsd = parseFloat(holding.soldUsd) || 0;
+            const pnlUsd = parseFloat(holding.pnlUsd) || 0;
             if (holdingsMap.has(ca)) {
               const prev = holdingsMap.get(ca)!;
               holdingsMap.set(ca, {
                 ...prev,
                 valueUsd: prev.valueUsd + valueUsd,
+                boughtUsd: prev.boughtUsd + boughtUsd,
+                soldUsd: prev.soldUsd + soldUsd,
+                pnlUsd: prev.pnlUsd + pnlUsd,
               });
             } else {
               holdingsMap.set(ca, {
@@ -83,6 +92,9 @@ export async function GET(
                 name: holding.name,
                 imageUrl: holding.imageUrl,
                 valueUsd: valueUsd,
+                boughtUsd: boughtUsd,
+                soldUsd: soldUsd,
+                pnlUsd: pnlUsd
               });
             }
           }
@@ -117,10 +129,10 @@ export async function GET(
       }
     }));
 
-    // 6) Convert the aggregated holdings to array, sort, take top 20
+    // 6) Convert the aggregated holdings to array, sort, take top 30
     const aggregatedHoldings = Array.from(holdingsMap.values());
-    aggregatedHoldings.sort((a, b) => b.valueUsd - a.valueUsd);
-    const topHoldings = aggregatedHoldings.slice(0, 20);
+    aggregatedHoldings.sort((a, b) => (b.valueUsd + b.soldUsd + b.boughtUsd) - (a.valueUsd + a.soldUsd + a.boughtUsd));
+    const topHoldings = aggregatedHoldings.slice(0, 30);
 
     // 7) Build BFS "associatedNetwork" from mergedAddressesMap + mergedLinksMap
     //    -> addresses: { address, volumeUsd }[]

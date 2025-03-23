@@ -17,7 +17,7 @@ export async function getWalletPnl(address: string): Promise<{
     // We'll attempt up to 3 times
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        console.log(`getWalletPnl => Attempt ${attempt} for ${address}`);
+        // console.log(`getWalletPnl => Attempt ${attempt} for ${address}`);
         const res = await fetch(`${KB_IP}/getWalletStats?address=${address}`);
         if (!res.ok) {
           throw new Error(`Failed to fetch wallet stats for ${address}`);
