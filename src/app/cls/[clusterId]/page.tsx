@@ -36,6 +36,8 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(false)
   const [data, setData] = useState<ICluster | null>(null)
 
+  const handleEdit = () => router.push(`/cls/${clusterId}/edit`)
+
   useEffect(() => {
     setIsLoading(true)
     fetch(`/api/cluster/${clusterId}`, {method: 'GET'})
@@ -88,12 +90,27 @@ export default function Page() {
                 </div>
               </div>
               <div className="flex flex-row gap-4">
-                <Button variant={'outline'} onClick={() => router.push(`/cls/${clusterId}/edit`)}>
-                  <Pencil /> Edit
-                </Button>
+                <div className="hidden md:block">
+                  <Button variant={'outline'} onClick={handleEdit}>
+                    <Pencil /> Edit
+                  </Button>
+                </div>
+                <div className="block md:hidden">
+                  <Button variant={'outline'} onClick={handleEdit}>
+                    <Pencil />
+                  </Button>
+                </div>
+
+                <div className="hidden md:block">
                 <Button>
                   <Share /> Share
                 </Button>
+                </div>
+                <div className="block md:hidden">
+                  <Button>
+                    <Share />
+                  </Button>
+                </div>
               </div>
             </div>
 

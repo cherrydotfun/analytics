@@ -229,12 +229,30 @@ export default function Page() {
                     onSubmitCbk={handleAddAccount}
                 />
                 <div className="flex flex-row gap-4">
+
+                    {/* add button */}
+                    <div className="hidden md:block">
                     <Button variant={'outline'} onClick={() => setDrawerOpen(true)}>
                         <CirclePlus /> Add new address
                     </Button>
+                    </div>
+                    <div className="block md:hidden">
+                    <Button variant={'outline'} onClick={() => setDrawerOpen(true)}>
+                        <CirclePlus />
+                    </Button>
+                    </div>
+
+                    {/* save button */}
+                    <div className="hidden md:block">
                     <Button onClick={handleSave}>
                         <Save /> Save
                     </Button>
+                    </div>
+                    <div className="block md:hidden">
+                    <Button onClick={handleSave}>
+                        <Save />
+                    </Button>
+                    </div>
                 </div>
                 </div>
                 

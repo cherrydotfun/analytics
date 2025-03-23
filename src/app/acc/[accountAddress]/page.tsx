@@ -90,14 +90,22 @@ export default function Page() {
                 </div>
               </div>
               <div className="flex flex-row gap-4">
-                <Button variant={'outline'} 
+                {/* <Button variant={'outline'} 
                 // onClick={() => router.push(`/cls/${clusterId}/edit`)}
                 >
                   <Copy /> Clone
-                </Button>
+                </Button> */}
+
+                <div className="hidden md:block">
                 <Button>
                   <Share /> Share
                 </Button>
+                </div>
+                <div className="block md:hidden">
+                  <Button>
+                    <Share />
+                  </Button>
+                </div>
               </div>
             </div>
 
