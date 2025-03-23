@@ -25,7 +25,7 @@ export function ClusterBalanceCard({
     const formattedBalance = abbreviateNumber(balanceUsd);
     return (
     <TooltipProvider>
-    <Card className={"w-full"} {...props}>
+    <Card className={"w-full h-full"} {...props}>
         <CardHeader>
             <CardTitle>Balance</CardTitle>
         {/* <CardDescription>hello world.</CardDescription> */}
