@@ -32,9 +32,8 @@ function AccountsTable({accounts, onToggle}: {accounts: IAccountEditable[], onTo
         {/* <TableCaption>A list of your recent invoices.</TableCaption> */}
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Address</TableHead>
-            <TableHead>Balance</TableHead>
-            <TableHead>P&L</TableHead>
+            <TableHead>Address</TableHead>
+            <TableHead>Volume</TableHead>
             <TableHead>Included</TableHead>
           </TableRow>
         </TableHeader>
@@ -42,8 +41,7 @@ function AccountsTable({accounts, onToggle}: {accounts: IAccountEditable[], onTo
           {accounts.map((account) => (
             <TableRow key={account.address}>
               <TableCell className="font-medium">{abbreviateAddress(account.address)}</TableCell>
-              <TableCell>${ abbreviateNumber(account.balance) }</TableCell>
-              <TableCell>{ formatGainLoss(account.pnlUsd, true, true) }</TableCell>
+              <TableCell>${ abbreviateNumber(account.volumeUsd) }</TableCell>
               <TableCell className="flex flex-row">
                 <Switch
                   id={`acc-${account.address}`}

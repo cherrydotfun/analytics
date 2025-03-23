@@ -38,6 +38,7 @@ import { IAccountEditable, ICluster } from '@/types/cluster';
 import Loader from '@/components/loader';
 import { isValidSolanaAddress } from '@/lib/solana';
 import { RefreshPageButton } from '@/components/refresh-page-button';
+import { abbreviateAddress } from '@/lib/formatting';
 
 
 function AddAccountDrawer({ isOpen, setOpenCbk, onSubmitCbk, ...props }: { isOpen: boolean, setOpenCbk: React.Dispatch<SetStateAction<boolean>>, onSubmitCbk: any }){
@@ -94,6 +95,7 @@ export default function Page() {
     const [newName, setNewName] = useState("")
 
     const [isDrawerOpen, setDrawerOpen] = useState(false)
+    const [isProcessing, setIsProcessing] = useState(false)
 
     const handleToggle = (address: string) => {
         setAccounts((prev) =>
@@ -104,8 +106,8 @@ export default function Page() {
     };
 
     const handleAddAccount = ({ newAddress }: { newAddress: string}) => {
-        const isNewAccount = accounts.every(account => account.address !== newAddress)
-        if(isNewAccount){
+        const isNewAddress = accounts.every(account => account.address !== newAddress)
+        if(isNewAddress){
             const newAccount: IAccountEditable  = {
                 address: newAddress,
                 pnlPerc: 0,
@@ -129,7 +131,41 @@ export default function Page() {
     }
 
     const handleSave = () => {
-        console.log(accounts)
+
+        setIsProcessing(true)
+
+        const submittedPayload = {
+            name: abbreviateAddress(data?.id || ""),
+            addresses: accounts
+                .filter(account => account.isIncluded)
+                .map(account => account.address)
+        }
+
+        fetch(`/api/cluster/${clusterId}`, {
+            method: 'PUT',
+            body: JSON.stringify(submittedPayload)
+        })
+        .then((res) => {
+            if(!res.ok) throw new Error('Bad response from server')
+            return res.json()
+        })
+        .then(({ status }) => {
+            if(status === 'ok'){
+                router.push(`/cls/${clusterId}`)
+            }else{
+              throw new Error('Invalid response from server')
+            }
+        })
+        .catch((error) => {
+            console.error(error, error.message)
+            toast.error('Error occurred', {
+                duration: Infinity,
+                description: error.message || "",
+                action: <RefreshPageButton />
+            })
+        })
+        .finally(() => setIsProcessing(false));
+
     }
 
     useEffect(() => {
@@ -140,12 +176,13 @@ export default function Page() {
             return res.json()
         })
         .then(({data: payload}) => {
+            console.log(payload)
             if(typeof payload === 'object' || typeof payload?.id === 'string' ){
                 setData(payload)
-                setAccounts(payload.accounts.map(( account: IAccountEditable ) => (
+                setAccounts(payload.associations.accounts.map(( account: IAccountEditable ) => (
                     {
                         ...account,
-                        isIncluded: true
+                        isIncluded: account.level === 0 || account.level === 1
                     }
                 )))
             }else{
@@ -203,7 +240,7 @@ export default function Page() {
                 
                 {/* metrics */}
 
-                <ClusterAssociatedAccountsWizard accounts={accounts} accountLinks={data.accountLinks} onToggle={handleToggle} className="w-full flex" />
+                <ClusterAssociatedAccountsWizard accounts={accounts} accountLinks={data.associations.accountLinks} onToggle={handleToggle} className="w-full flex" />
 
             </div>
             }

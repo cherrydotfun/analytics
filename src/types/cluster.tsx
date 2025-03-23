@@ -11,7 +11,8 @@ export interface IAccount {
     balance: number,
     pnlUsd: number,
     pnlPerc: number,
-    volumeUsd: number
+    volumeUsd: number,
+    level: number
 }
 
 export interface IAccountEditable extends IAccount {

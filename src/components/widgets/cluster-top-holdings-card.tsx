@@ -29,7 +29,7 @@ import { abbreviateNumber } from "@/lib/formatting"
 import { toast } from "sonner"
 
 function HoldingsTable({ holdings }: { holdings: any[] }) {
-  const handleCopy = (textToCopy) => {
+  const handleCopy = (textToCopy: string) => {
     navigator.clipboard.writeText(textToCopy)
     toast.success('Copied to clipboard')
   }

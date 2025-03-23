@@ -24,13 +24,14 @@ export function ClusterAddToWatchlist({
     const router = useRouter()
     const handleAdd = () => {
 
+        setIsProcessing(true)
+        
         const submittedPayload = {
             name: abbreviateAddress(id),
-            addresses: accounts.map(account => account.address)
+            addresses: accounts
+                .filter(account => account.level === 0 || account.level === 1)
+                .map(account => account.address)
         }
-        console.log(submittedPayload)
-
-        setIsProcessing(true)
 
         fetch('/api/cluster/', {
             method: 'POST',
@@ -57,9 +58,6 @@ export function ClusterAddToWatchlist({
             })
         })
         .finally(() => setIsProcessing(false));
-
-        // 1. POST /cls/ - create cluster
-        // 2. router.push - redirect the user to cluster page
     }
 
     return (
