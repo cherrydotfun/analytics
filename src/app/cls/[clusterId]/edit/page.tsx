@@ -38,7 +38,7 @@ import { IAccountEditable, ICluster } from '@/types/cluster';
 import Loader from '@/components/loader';
 import { isValidSolanaAddress } from '@/lib/solana';
 import { RefreshPageButton } from '@/components/refresh-page-button';
-import { abbreviateAddress } from '@/lib/formatting';
+import { abbreviateAddress, truncateHeading } from '@/lib/formatting';
 
 
 function AddAccountDrawer({ isOpen, setOpenCbk, onSubmitCbk, ...props }: { isOpen: boolean, setOpenCbk: React.Dispatch<SetStateAction<boolean>>, onSubmitCbk: any }){
@@ -219,7 +219,7 @@ export default function Page() {
                     <IdentityIcon username={data.id} width={50} style={{"backgroundColor": "#333", "borderRadius": "50%"}} />
                     </div>
                     <div>
-                    <h1 className="text-2xl font-bold">{data.name}</h1>
+                    <h1 className="text-2xl font-bold">{truncateHeading(data.name)}</h1>
                     <p className="text-xs text-gray-400">Private cluster</p>
                     </div>
                 </div>

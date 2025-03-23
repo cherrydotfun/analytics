@@ -28,6 +28,7 @@ import Link from 'next/link';
 import { ICluster } from '@/types/cluster';
 import Loader from '@/components/loader';
 import { RefreshPageButton } from '@/components/refresh-page-button';
+import { truncateHeading } from '@/lib/formatting';
 
 // TODO: check if this works: { params }: { params: { clusterId: string } }
 export default function Page() {
@@ -80,16 +81,16 @@ export default function Page() {
           <div className="flex flex-1 flex-col gap-4 p-4">
             {/* cluster header */}
             <div className="flex flex-row justify-between items-center">
-              <div className="flex flex-row">
+              <div className="flex flex-row gap-4 w-2/3">
                 <div className="mr-4">
                 <IdentityIcon username={data.id || ""} width={50} style={{"backgroundColor": "#333", "borderRadius": "50%"}} />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">{data.name}</h1>
+                  <h1 className="text-2xl font-bold">{truncateHeading(data.name)}</h1>
                   <p className="text-xs text-gray-400">Private cluster</p>
                 </div>
               </div>
-              <div className="flex flex-row gap-4">
+              <div className="flex flex-row gap-4 w-1/3 justify-end">
                 <div className="hidden md:block">
                   <Button variant={'outline'} onClick={handleEdit}>
                     <Pencil /> Edit
