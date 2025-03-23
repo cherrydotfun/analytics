@@ -41,6 +41,9 @@ function HoldingsTable({ holdings }: { holdings: any[] }) {
           <TableHead>Token</TableHead>
           <TableHead>CA</TableHead>
           <TableHead>Value</TableHead>
+          <TableHead>Bought</TableHead>
+          <TableHead>Sold</TableHead>
+          <TableHead>P&L</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -64,6 +67,9 @@ function HoldingsTable({ holdings }: { holdings: any[] }) {
               ><Copy /></Button>
             </TableCell>
             <TableCell>${ abbreviateNumber(holding.valueUsd) }</TableCell>
+            <TableCell>${ abbreviateNumber(holding.boughtUsd) }</TableCell>
+            <TableCell>${ abbreviateNumber(holding.soldUsd) }</TableCell>
+            <TableCell>${ abbreviateNumber(holding.pnlUsd) }</TableCell>
           </TableRow>
         ))}
       </TableBody>

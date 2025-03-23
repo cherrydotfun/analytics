@@ -1,6 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
-import cytoscape from 'cytoscape';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Metadata } from 'next';
 import { toast } from "sonner"
 
@@ -10,7 +9,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Share, Pencil, List, Network } from "lucide-react"
+import { Share, Pencil } from "lucide-react"
 import { useRouter, useParams } from 'next/navigation';
 
 import IdentityIcon from "@/components/identicon"
@@ -22,133 +21,181 @@ import { ClusterAssociatedAccounts } from "@/components/widgets/cluster-accounts
 import { ClusterAchievements } from "@/components/widgets/cluster-achievements-card"
 import { ClusterTopHoldings } from "@/components/widgets/cluster-top-holdings-card"
 import { ClusterRecentTransactions } from "@/components/widgets/cluster-recent-txs-card"
-
-import useTitle from '@/hooks/use-title';
-import Link from 'next/link';
-import { ICluster } from '@/types/cluster';
 import Loader from '@/components/loader';
 import { RefreshPageButton } from '@/components/refresh-page-button';
-import { truncateHeading } from '@/lib/formatting';
+import { ICluster } from '@/types/cluster';
 
-// TODO: check if this works: { params }: { params: { clusterId: string } }
 export default function Page() {
   const router = useRouter();
   const { clusterId } = useParams<{ clusterId: string }>();
-  const [isLoading, setIsLoading] = useState(false)
-  const [data, setData] = useState<ICluster | null>(null)
 
-  const handleEdit = () => router.push(`/cls/${clusterId}/edit`)
+  const [isLoading, setIsLoading] = useState(false);
+  const [data, setData] = useState<ICluster | null>(null);
+  const [logs, setLogs] = useState<string[]>([]);
+
+  // We'll reference this container so we can auto-scroll
+  const logContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setIsLoading(true)
-    fetch(`/api/cluster/${clusterId}`, {method: 'GET'})
-      .then((res) => {
-        if(!res.ok) throw new Error('Bad response from server')
-        return res.json()
-      })
-      .then(({ data: payload }) => {
-        if(typeof payload === 'object' || typeof payload?.id === 'string' ){
-          setData(payload)
-        }else{
-          throw new Error('Invalid response from server')
+    // Start loading
+    setIsLoading(true);
+    // Clear old logs
+    setLogs([]);
+
+    // Instead of fetch, we use SSE to /api/cluster/[clusterId]/stream
+    // You need a corresponding server route that streams logs + final data.
+    const es = new EventSource(`/api/cluster/${clusterId}/stream`);
+
+    es.onmessage = (event) => {
+      // If final result
+      if (event.data.startsWith("FINAL_RESULT:")) {
+        try {
+          const jsonStr = event.data.replace("FINAL_RESULT: ", "");
+          const parsed = JSON.parse(jsonStr);
+
+          // We expect 'parsed' to be your cluster object
+          setData(parsed);
+          setIsLoading(false);
+
+          // Clear logs, close SSE
+          setLogs([]);
+          es.close();
+        } catch (err: any) {
+          toast.error('Error parsing final result', {
+            duration: Infinity,
+            description: err?.message || "",
+            action: <RefreshPageButton />
+          });
+          setIsLoading(false);
+          es.close();
         }
-      })
-      .catch((error) => {
-        toast.error('Error occurred', {
+      } else if (event.data.startsWith("ERROR:")) {
+        toast.error('Server-Side Error', {
           duration: Infinity,
-          description: error.message || "",
+          description: event.data,
           action: <RefreshPageButton />
-        })
-      })
-      .finally(() => setIsLoading(false));
+        });
+        setIsLoading(false);
+        es.close();
+      } else {
+        // otherwise treat as BFS log line
+        setLogs((prev) => [...prev, event.data]);
+      }
+    };
+
+    es.onerror = (err) => {
+      console.error('SSE error:', err);
+      toast.error('Connection error with SSE', {
+        duration: Infinity,
+        action: <RefreshPageButton />
+      });
+      setIsLoading(false);
+      es.close();
+    };
+
+    return () => {
+      es.close();
+    };
   }, [clusterId]);
 
-  // on load
+  // Auto-scroll logs to bottom when they change
   useEffect(() => {
-    // useTitle(cluster.name)
-  }, [])
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [logs]);
 
   return (
-  <div className="[--header-height:calc(--spacing(14))]">
-    <SidebarProvider className="flex flex-col">
-      <SiteHeader />
-      <div className="flex flex-1">
-        <AppSidebar />
-        <SidebarInset>
-          { data === null ? 
-          <Loader />
-          :
-          <div className="flex flex-1 flex-col gap-4 p-4">
-            {/* cluster header */}
-            <div className="flex flex-row justify-between items-center">
-              <div className="flex flex-row gap-4 w-2/3">
-                <div className="mr-4">
-                <IdentityIcon username={data.id || ""} width={50} style={{"backgroundColor": "#333", "borderRadius": "50%"}} />
+    <div className="[--header-height:calc(--spacing(14))]">
+      <SidebarProvider className="flex flex-col">
+        <SiteHeader />
+        <div className="flex flex-1">
+          <AppSidebar />
+          <SidebarInset>
+            {data === null ? (
+              <Loader loading={isLoading} />
+            ) : (
+              <div className="flex flex-1 flex-col gap-4 p-4">
+                {/* cluster header */}
+                <div className="flex flex-row justify-between items-center">
+                  <div className="flex flex-row">
+                    <div className="mr-4">
+                      <IdentityIcon
+                        username={data.id || ""}
+                        width={50}
+                        style={{ backgroundColor: "#333", borderRadius: "50%" }}
+                      />
+                    </div>
+                    <div>
+                      <h1 className="text-2xl font-bold">{data.name}</h1>
+                      <p className="text-xs text-gray-400">Private cluster</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-row gap-4">
+                    <Button
+                      variant={'outline'}
+                      onClick={() => router.push(`/cls/${clusterId}/edit`)}
+                    >
+                      <Pencil /> Edit
+                    </Button>
+                    <Button>
+                      <Share /> Share
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold">{truncateHeading(data.name)}</h1>
-                  <p className="text-xs text-gray-400">Private cluster</p>
+
+                {/* cluster metrics */}
+                <div className="flex flex-col lg:flex-row  gap-4">
+                  <div className="flex flex-col lg:w-1/2 gap-4">
+                    <ClusterBalanceCard balanceUsd={data.financials.balanceUsd || 0} />
+                  </div>
+                  <ClusterPnlCard pnlPerc={data.financials.pnlPerc || 0} pnlUsd={data.financials.pnlUsd || 0} unrealizedPnlUsd={data.financials.unrealizedPnlUsd || 0} />
+                  {/* <ClusterAchievements achievements={data.achievements || []} className="lg:w-2/3 flex" /> */}
                 </div>
+
+                {/* tabs */}
+                <Tabs defaultValue="accounts" className="flex w-full">
+                  <TabsList>
+                    <TabsTrigger value="accounts" className="cursor-pointer">
+                      Associated accounts
+                    </TabsTrigger>
+                    <TabsTrigger value="holdings" className="cursor-pointer">
+                      Top holdings
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="accounts">
+                    <ClusterAssociatedAccounts
+                      accounts={data.associations?.accounts || []}
+                      accountLinks={data.associations?.accountLinks || []}
+                      className="w-full flex"
+                    />
+                  </TabsContent>
+                  <TabsContent value="holdings">
+                    <ClusterTopHoldings
+                      holdings={data.financials?.holdings || []}
+                      className="w-full flex"
+                    />
+                  </TabsContent>
+                </Tabs>
               </div>
-              <div className="flex flex-row gap-4 w-1/3 justify-end">
-                <div className="hidden md:block">
-                  <Button variant={'outline'} onClick={handleEdit}>
-                    <Pencil /> Edit
-                  </Button>
-                </div>
-                <div className="block md:hidden">
-                  <Button variant={'outline'} onClick={handleEdit}>
-                    <Pencil />
-                  </Button>
-                </div>
+            )}
 
-                <div className="hidden md:block">
-                <Button>
-                  <Share /> Share
-                </Button>
-                </div>
-                <div className="block md:hidden">
-                  <Button>
-                    <Share />
-                  </Button>
-                </div>
+            {/* Show BFS logs if we haven't finished yet and logs exist */}
+            {isLoading && logs.length > 0 && (
+              <div
+                ref={logContainerRef}
+                className="mt-6 p-4 border bg-black text-white rounded overflow-auto h-[200px]"
+              >
+                {logs.map((line, i) => (
+                  <div key={i} className="text-sm">
+                    {line}
+                  </div>
+                ))}
               </div>
-            </div>
-
-            {/* cluster metrics */}
-            <div className="flex flex-col lg:flex-row  gap-4">
-              <div className="flex flex-col lg:w-1/2 gap-4">
-                <ClusterBalanceCard balanceUsd={data.financials.balanceUsd || 0} />
-              </div>
-              <ClusterPnlCard pnlPerc={data.financials.pnlPerc || 0} pnlUsd={data.financials.pnlUsd || 0} unrealizedPnlUsd={data.financials.unrealizedPnlUsd || 0} />
-              {/* <ClusterAchievements achievements={data.achievements || []} className="lg:w-2/3 flex" /> */}
-            </div>
-            
-            {/* metrics */}
-
-            <Tabs defaultValue="accounts" className="flex w-full">
-              <TabsList>
-                <TabsTrigger value="accounts" className="cursor-pointer">Associated accounts</TabsTrigger>
-                <TabsTrigger value="holdings" className="cursor-pointer">Top holdings</TabsTrigger>
-                {/* <TabsTrigger value="transactions">Recent transactions</TabsTrigger> */}
-              </TabsList>
-              <TabsContent value="accounts">
-                <ClusterAssociatedAccounts accounts={data.associations.accounts || []} accountLinks={data.associations.accountLinks || []} className="w-full flex" />
-              </TabsContent>
-              <TabsContent value="holdings">
-                <ClusterTopHoldings holdings={data.financials.holdings || []} className="w-full flex" />
-              </TabsContent>
-              {/* <TabsContent value="transactions">
-                <ClusterRecentTransactions txs={data.txs || []} className="w-full flex" />
-              </TabsContent> */}
-            </Tabs>
-
-          </div>
-
-          }
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
-  </div>
-  )
+            )}
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    </div>
+  );
 }
