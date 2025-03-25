@@ -10,11 +10,22 @@ export function computeAssociationScore(rel: any): number {
   const inUsd = parseFloat(rel.in?.totalUsd || '0');
   const outUsd = parseFloat(rel.out?.totalUsd || '0');
 
+  const totalTx = inTx + outTx;
+  const totalUsd = inUsd + outUsd;
+
   // Base logic
   if (inTx > 0 && outTx > 0) {
     score = 100;
-  } else if (outTx > 1 && inTx === 0) {
-    score = 30;
+  } else if (outTx >= 1 && inTx === 0) {
+    if (totalUsd < 500 && (totalUsd > 10)){
+      score = 70;
+    } else if ((totalUsd >= 500) && (totalUsd <= 2000)){
+      score = 80;
+    } else if (totalUsd > 2000){
+      score = 100;
+    } else {
+      score = 40;
+    }
   } else if (inTx > 0 && outTx === 0) {
     if (inUsd < 1) {
       score = 1;
@@ -25,8 +36,6 @@ export function computeAssociationScore(rel: any): number {
     }
   }
 
-  const totalTx = inTx + outTx;
-  const totalUsd = inUsd + outUsd;
 
   // Bonus logic
   if (totalTx > 1 && totalUsd > 10) {
@@ -95,7 +104,7 @@ export async function getHighScoreAssociations(
   const log = (msg: string) => {
     onLog?.(msg);
     // If you also want console logs, uncomment:
-    // console.log(msg);
+    console.log(msg);
   };
 
   log(`\n[Counting Relevance Score] => BFS from root: ${rootAddress}, maxDepth=${maxDepth}`);
