@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react"
 import cytoscape from 'cytoscape';
 import { List, Network } from "lucide-react"
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"
+import fcose from 'cytoscape-fcose';
+
+cytoscape.use(fcose); // register the extension
 
 import {
     Card,
@@ -24,16 +27,41 @@ import {
   } from "@/components/ui/table"
 import { abbreviateNumber, formatGainLoss } from "@/lib/formatting"
 
-const nodeSizes = {
-  s: 10,
-  m: 20,
-  l: 30,
+// Define 7 "bins" for node sizes
+function getNodeSize(volume: number) {
+  if (volume < 10) return 10
+  if (volume < 100) return 20
+  if (volume < 1000) return 30
+  if (volume < 10_000) return 50
+  if (volume < 100_000) return 80
+  if (volume < 1_000_000) return 130
+  return 10
 }
 
-const edgeSizes = {
-  s: 1,
-  m: 3,
-  l: 5,
+// Define 7 "bins" for edge sizes
+function getEdgeSize(volume: number) {
+  if (volume < 10) return 2
+  if (volume < 100) return 3
+  if (volume < 1000) return 5
+  if (volume < 10_000) return 8
+  if (volume < 100_000) return 13
+  if (volume < 1_000_000) return 21
+  return 2
+}
+
+/**
+ * Returns an opacity between 0 and 1 based on the link's volume.
+ * Larger volume => higher opacity => less transparent.
+ */
+function getEdgeOpacity(volume: number) {
+  if (volume <= 0) return 0.1
+  // Simple clamping approach, e.g. max out at 1.0
+  // Increase multiplier or tweak as needed for your dataset.
+  const scaled = Math.log10(volume + 1) * 0.3
+  // e.g. volume=100 => log10(101)*0.2 ~ 0.4
+  // volume=10_000 => log10(10001)*0.2 ~ 0.8
+  // Then clamp between 0.1 and 1
+  return Math.max(0.1, Math.min(1, scaled))
 }
 
 const nodeColors = {
@@ -68,70 +96,211 @@ function AccountsTable({accounts}: {accounts: any[]}) {
 }
 
 
-function AccountsGraph({accounts, accountLinks}: {accounts: any[], accountLinks: any[]}) {
-  const graphRef = useRef(null)
+export function AccountsGraph({ accounts, accountLinks }: Props) {
+  const graphRef = useRef<HTMLDivElement>(null)
 
+  // Tooltip state: (x, y) coords + info to display
+  const [tooltip, setTooltip] = useState<{
+    x: number
+    y: number
+    visible: boolean
+    address: string
+    volume: any
+  }>({
+    x: 0,
+    y: 0,
+    visible: false,
+    address: '',
+    volume: 0,
+  })
+
+  // Convert accounts to Cytoscape nodes
   const nodes = accounts.map(account => ({
-    "data": {
-      "id": account.address,
-      "label": abbreviateAddress(account.address),
-      "volume": account.volumeUsd,
-      "level": account.level,
-      "_size": account.volumeUsd < 1000 ? nodeSizes.s : account.volumeUsd < 10000 ? nodeSizes.m : nodeSizes.l,
-      "_color": nodeColors[account.level+"" in nodeColors ? account.level+"" : "default"]
+    data: {
+      id: account.address,
+      label: abbreviateAddress(account.address),
+      fullAddress: account.address,  // for tooltip
+      volume: account.volumeUsd,
+      level: account.level,
+      _size: getNodeSize(account.volumeUsd),
+      _color: nodeColors[String(account.level)] ?? nodeColors.default,
     }
   }))
 
+  // Convert links to Cytoscape edges
   const edges = accountLinks.map(link => ({
-    "data": {
-      "id": `${link.source}-${link.target}`,
-      "source": link.source,
-      "target": link.target,
-      "_size": link.volumeUsd < 1000 ? edgeSizes.s : link.volumeUsd < 10000 ? edgeSizes.m : edgeSizes.l,
+    data: {
+      id: `${link.source}-${link.target}`,
+      source: link.source,
+      target: link.target,
+      volume: link.volumeUsd,
+      _size: getEdgeSize(link.volumeUsd),
+      _opacity: getEdgeOpacity(link.volumeUsd),
     }
   }))
 
   const drawGraph = () => {
+    if (!graphRef.current) return
+
     const cy = cytoscape({
       container: graphRef.current,
       elements: [...nodes, ...edges],
+      zoom: 1,
+      // limit how far in/out users can zoom
+      minZoom: 0.2,
+      maxZoom: 2,
       style: [
         {
           selector: 'node',
           style: {
-            'label': 'data(label)',
-            'color': 'data(_color)',
+            label: 'data(label)',
             'background-color': 'data(_color)',
-            'width': 'data(_size)',
-            'height': 'data(_size)',
+            // Outline for label contrast
+            'text-outline-width': 1,
+            'text-outline-color': '#000',
+            color: '#fff',
+            width: 'data(_size)',
+            height: 'data(_size)',
+            'font-size': 20,
+            'font-weight': 'bold',
+            'text-halign': 'center',
+            'text-valign': 'center',
           }
         },
         {
           selector: 'edge',
           style: {
-            'width': 'data(_size)',
-            'line-color': '#ccc',
+            'line-color': '#949494',
+            'line-opacity': 'data(_opacity)',
+            width: 'data(_size)',
           }
         }
       ]
-     })
-     cy.panningEnabled( false );
-    }
-   
-    useEffect(() => {
-     drawGraph()
-    }, [])
-
-    useEffect(() => {
-      // TODO: cy.center() works a little better
-      window.addEventListener("resize", drawGraph);
-      return () => window.removeEventListener("resize", drawGraph); // Cleanup
     })
 
-    return (
-      <div ref={graphRef} className="w-full aspect-[2/1]" />
-    )
+    // Use a force-based layout (fcose) for better distribution
+    cy.layout({
+      name: 'fcose',
+      // Scale repulsion by volume
+      nodeRepulsion: (node) => 20000 + (node.data('volume') ?? 0) * 0.2,
+      idealEdgeLength: 150,
+      nodeSeparation: 150,
+      gravity: 0.2,
+      gravityRange: 2.0,
+      packComponents: true,
+      randomize: true,
+      animate: true,
+      animationDuration: 3500,
+      animationEasing: 'ease-out-cubic'
+    }).run()
 
+    // Device pixel ratio for hiDPI screens
+    const dpr = window.devicePixelRatio || 1
+
+    // ---------------------------
+    // MOUSE/EVENT HANDLERS
+    // ---------------------------
+    // 1. Show tooltip on hover
+    // Show tooltip on node hover
+    cy.on('mouseover', 'node', (event) => {
+      const node = event.target
+      const pos = node.renderedPosition()
+
+      // Distance from top-left of page for the container
+      const rect = graphRef.current?.getBoundingClientRect()
+      if (!rect) return
+
+      // Convert Cytoscape rendered coords to page coords
+      // Often dividing by dpr helps correct for retina/zoom mismatch
+      const x = rect.left + pos.x / dpr
+      const y = rect.top + pos.y / dpr
+
+      setTooltip({
+        x,
+        y,
+        visible: true,
+        address: node.data('fullAddress'),
+        volume: '$' + parseFloat(parseFloat(node.data('volume')).toFixed(2)),
+      })
+    })
+
+    // Hide tooltip on mouse out
+    cy.on('mouseout', 'node', () => {
+      setTooltip((prev) => ({ ...prev, visible: false }))
+    })
+
+    // Show tooltip on tap/click (if you like)
+    cy.on('tap', 'node', (event) => {
+      const node = event.target
+      const pos = node.renderedPosition()
+      const rect = graphRef.current?.getBoundingClientRect()
+      if (!rect) return
+
+      const x = rect.left + pos.x / dpr
+      const y = rect.top + pos.y / dpr
+
+      setTooltip({
+        x,
+        y,
+        visible: true,
+        address: node.data('fullAddress'),
+        volume: '$' + parseFloat(parseFloat(node.data('volume')).toFixed(2)),
+      })
+    })
+
+    // Hide tooltip if user taps the empty space
+    cy.on('tap', (event) => {
+      if (event.target === cy) {
+        setTooltip((prev) => ({ ...prev, visible: false }))
+      }
+    })
+
+    // Optionally disable user panning/zooming if you want a fixed layout
+    // cy.panningEnabled(false)
+    // cy.userZoomingEnabled(false)
+    cy.center();
+    cy.zoom(1);
+  }
+
+  // Draw graph whenever accounts or accountLinks changes
+  useEffect(() => {
+    drawGraph()
+  }, [accounts, accountLinks])
+
+  // Redraw on window resize
+  useEffect(() => {
+    window.addEventListener('resize', drawGraph)
+    return () => window.removeEventListener('resize', drawGraph)
+  }, [])
+
+  return (
+    <>
+      {/* Container that Cytoscape uses */}
+      <div ref={graphRef} className="w-full aspect-[2/1]" />
+
+      {/* A simple absolutely-positioned tooltip */}
+      {tooltip.visible && (
+        <div
+          style={{
+            position: 'absolute',
+            left: tooltip.x + 6, // offset a bit so the tooltip doesn't overlap the cursor
+            top: tooltip.y + 6,
+            pointerEvents: 'none',
+            background: 'rgba(0, 0, 0, 0.8)',
+            color: '#fff',
+            padding: '6px 8px',
+            borderRadius: '4px',
+            fontSize: '0.85rem',
+            whiteSpace: 'nowrap',
+            zIndex: 1000,
+          }}
+        >
+          <div><strong>Address:</strong> {tooltip.address}</div>
+          <div><strong>Volume:</strong> {tooltip.volume}</div>
+        </div>
+      )}
+    </>
+  )
 }
 
 export function ClusterAssociatedAccounts({

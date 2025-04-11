@@ -82,6 +82,7 @@ export async function GET(
 
           // 5a) Get wallet PNL
           const pnl = await getWalletPnl(walletAddress);
+          console.log(`PNL for ${walletAddress}:`, pnl, '\n');
           clusterTotalPnlUsd += pnl.pnlUsd;
           clusterTotalUnrealizedPnlUsd += pnl.unrealizedPnlUsd;
           clusterTotalBalanceUsd += pnl.balanceUsd;

@@ -115,6 +115,19 @@ export default function Page() {
         <div className="flex flex-1">
           <AppSidebar />
           <SidebarInset>
+            {/* Show the BFS logs panel only if we're still loading and have logs */}
+            {isLoading && logs.length > 0 && (
+              <div
+                ref={logContainerRef}
+                className="mb-6 p-4 border bg-black text-white rounded overflow-auto h-[60vh]"
+              >
+                {logs.map((line, i) => (
+                  <div key={i} className="text-sm">
+                    {line}
+                  </div>
+                ))}
+              </div>
+            )}
             {data === null ? (
               <Loader loading={isLoading} />
             ) : (
@@ -192,20 +205,6 @@ export default function Page() {
                     />
                   </TabsContent>
                 </Tabs>
-              </div>
-            )}
-
-            {/* Show BFS logs if we haven't finished yet and logs exist */}
-            {isLoading && logs.length > 0 && (
-              <div
-                ref={logContainerRef}
-                className="mt-6 p-4 border bg-black text-white rounded overflow-auto h-[300px]"
-              >
-                {logs.map((line, i) => (
-                  <div key={i} className="text-sm">
-                    {line}
-                  </div>
-                ))}
               </div>
             )}
           </SidebarInset>
