@@ -57,7 +57,7 @@ function getEdgeOpacity(volume: number) {
   if (volume <= 0) return 0.1
   // Simple clamping approach, e.g. max out at 1.0
   // Increase multiplier or tweak as needed for your dataset.
-  const scaled = Math.log10(volume + 1) * 0.3
+  const scaled = Math.log10(volume + 1) * 0.2
   // e.g. volume=100 => log10(101)*0.2 ~ 0.4
   // volume=10_000 => log10(10001)*0.2 ~ 0.8
   // Then clamp between 0.1 and 1
@@ -283,8 +283,8 @@ export function AccountsGraph({ accounts, accountLinks }: Props) {
         <div
           style={{
             position: 'absolute',
-            left: tooltip.x + 6, // offset a bit so the tooltip doesn't overlap the cursor
-            top: tooltip.y + 6,
+            left: tooltip.x + 2, // offset a bit so the tooltip doesn't overlap the cursor
+            top: tooltip.y + 2,
             pointerEvents: 'none',
             background: 'rgba(0, 0, 0, 0.8)',
             color: '#fff',

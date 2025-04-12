@@ -114,7 +114,7 @@ export default function Page() {
             {isLoading && logs.length > 0 && (
               <div
                 ref={logsRef}
-                className="mb-6 p-4 border border-green-500 bg-black text-green-400 rounded overflow-auto h-[70vh] font-mono text-sm leading-tight shadow-[0_0_8px_#00ff00]"
+                className="mb-6 p-4 border border-green-500 bg-black text-green-400 rounded overflow-auto h-[60vh] font-mono text-sm leading-tight shadow-[0_0_8px_#00ff00]"
               >
                 {logs.map((line, i) => (
                   <div key={i} className="whitespace-pre-wrap">
