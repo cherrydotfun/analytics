@@ -27,12 +27,9 @@ import {
 
 import { abbreviateNumber } from "@/lib/formatting"
 import { toast } from "sonner"
+import { handleCopy } from "@/lib/utils/copy-to-clipboard"
 
 function HoldingsTable({ holdings }: { holdings: any[] }) {
-  const handleCopy = (textToCopy: string) => {
-    navigator.clipboard.writeText(textToCopy)
-    toast.success('Copied to clipboard')
-  }
   return (
     <Table>
       {/* <TableCaption>A list of your recent invoices.</TableCaption> */}

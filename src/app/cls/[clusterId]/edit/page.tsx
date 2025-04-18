@@ -92,6 +92,8 @@ export default function Page() {
     const [data, setData] = useState<ICluster | null>(null)
 
     const [accounts, setAccounts] = useState<IAccountEditable[]>([])
+
+    const [isEditingTitle, setIsEditingTitle] = useState(false)
     const [newName, setNewName] = useState("")
 
     const [isDrawerOpen, setDrawerOpen] = useState(false)
@@ -135,7 +137,7 @@ export default function Page() {
         setIsProcessing(true)
 
         const submittedPayload = {
-            name: abbreviateAddress(data?.id || ""),
+            name: newName,
             addresses: accounts
                 .filter(account => account.isIncluded)
                 .map(account => account.address)
@@ -179,6 +181,7 @@ export default function Page() {
             console.log(payload)
             if(typeof payload === 'object' || typeof payload?.id === 'string' ){
                 setData(payload)
+                setNewName(payload.name)
                 setAccounts(payload.associations.accounts.map(( account: IAccountEditable ) => (
                     {
                         ...account,
@@ -219,7 +222,29 @@ export default function Page() {
                     <IdentityIcon username={data.id} width={50} style={{"backgroundColor": "#333", "borderRadius": "50%"}} />
                     </div>
                     <div>
-                    <h1 className="text-2xl font-bold">{truncateHeading(data.name)}</h1>
+                    
+                    <div>
+                    {isEditingTitle ? (
+                        <input
+                        type="text"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        onBlur={() => setIsEditingTitle(false)}
+                        autoFocus
+                        className="text-2xl font-bold border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                        />
+                    ) : (
+                        <h1
+                        className="text-2xl font-bold cursor-text"
+                        onClick={() => setIsEditingTitle(true)}
+                        >
+                        {newName}
+                        </h1>
+                    )}
+                    </div>
+
+
+                    {/* <h1 className="text-2xl font-bold cursor-text">{truncateHeading(data.name)}</h1> */}
                     <p className="text-xs text-gray-400">Private cluster</p>
                     </div>
                 </div>
@@ -228,7 +253,7 @@ export default function Page() {
                     setOpenCbk={setDrawerOpen}
                     onSubmitCbk={handleAddAccount}
                 />
-                <div className="flex flex-row gap-4">
+                <div className={`${isEditingTitle ? 'hidden' : 'flex'} sm:flex flex-row gap-4`}>
 
                     {/* add button */}
                     <div className="hidden md:block">

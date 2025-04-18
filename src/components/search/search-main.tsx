@@ -33,7 +33,7 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search for an account address"
-            className="w-sm sm:w-md md:w-lg h-md pl-7"
+            className="w-3xs 3xs:w-2xs 2xs:w-xs xs:w-sm sm:w-md md:w-lg h-md pl-7"
             onKeyDown={handleKeyDown}
         />
         <Search className="pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2 opacity-50 select-none" />
