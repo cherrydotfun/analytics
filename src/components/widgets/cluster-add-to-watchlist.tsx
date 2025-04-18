@@ -62,7 +62,7 @@ export function ClusterAddToWatchlist({
 
     return (
     <Card {...props}>
-        <CardContent className="flex flex-row justify-between items-center gap-4">
+        <CardContent className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div>
                 <p>
                 You can add more accounts to the cluster or remove irrelevant ones by adding the cluster to your watchlist

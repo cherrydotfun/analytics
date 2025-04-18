@@ -149,22 +149,22 @@ export default function Page() {
                   </div>
                   <div className="flex flex-row gap-4">
                     
-                    <div className="hidden md:block">
+                    <div className="hidden sm:block">
                       <Button variant={'outline'} onClick={handleEdit}>
                         <Pencil /> Edit
                       </Button>
                     </div>
-                    <div className="block md:hidden">
+                    <div className="block sm:hidden">
                       <Button variant={'outline'} onClick={handleEdit}>
                         <Pencil />
                       </Button>
                     </div>
-                    <div className="hidden md:block">
+                    <div className="hidden sm:block">
                       <Button>
                         <Share /> Share
                       </Button>
                     </div>
-                    <div className="block md:hidden">
+                    <div className="block sm:hidden">
                       <Button>
                         <Share />
                       </Button>

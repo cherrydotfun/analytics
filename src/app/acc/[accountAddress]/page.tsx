@@ -147,10 +147,12 @@ export default function Page() {
                     {/* <Button variant={'outline'}>
                       <Copy /> Clone
                     </Button> */}
-                    <Button>
-                      <Share /> Share
-                    </Button>    
-                    <div className="block md:hidden">
+                    <div className="hidden sm:block">
+                      <Button>
+                        <Share /> Share
+                      </Button>   
+                    </div>
+                    <div className="block sm:hidden">
                       <Button>
                         <Share />
                       </Button>
