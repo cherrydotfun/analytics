@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useSidebar } from "@/components/ui/sidebar"
+import Link from "next/link";
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar()
@@ -23,13 +24,13 @@ export function SiteHeader() {
     <header className="bg-background sticky top-0 z-50 flex w-full items-center border-b">
       <div className="flex h-(--header-height) w-full items-center gap-2 px-4">
         
-        <a href="/" className="text-2xl font-bold text-primary hidden sm:block">
+        <Link href="/" className="text-2xl font-bold text-primary hidden sm:block">
             {process.env.NEXT_PUBLIC_APP_NAME}
-        </a>
+        </Link>
 
-        <a href="/" className="text-2xl font-bold text-primary block sm:hidden">
+        <Link href="/" className="text-2xl font-bold text-primary block sm:hidden">
             {process.env.NEXT_PUBLIC_APP_EMOJI}
-        </a>
+        </Link>
 
         <Button
           className="h-8 w-8 block md:hidden"

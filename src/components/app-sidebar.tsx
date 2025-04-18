@@ -29,6 +29,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import Link from "next/link"
 
 const data = {
   user: {
@@ -76,7 +77,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/cls/">
+              <Link href="/cls/">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Eye className="size-4" />
                 </div>
@@ -84,23 +85,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <span className="truncate font-medium">Watchlist</span>
                   <span className="truncate text-xs">Track saved accounts</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-
-          {/* <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <a href="/explore/">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Compass className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Explore</span>
-                  <span className="truncate text-xs">Find notable accounts</span>
-                </div>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem> */}
 
         </SidebarMenu>
       </SidebarHeader>
