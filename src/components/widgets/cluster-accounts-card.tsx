@@ -15,6 +15,7 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Copy } from "lucide-react"
 import { abbreviateAddress } from "@/lib/formatting"
 import {
     Table,
@@ -26,6 +27,9 @@ import {
     TableRow,
   } from "@/components/ui/table"
 import { abbreviateNumber, formatGainLoss } from "@/lib/formatting"
+
+import { toast } from "sonner"
+import { handleCopy } from "@/lib/utils/copy-to-clipboard";
 
 // Define 7 "bins" for node sizes
 function getNodeSize(volume: number) {
@@ -85,7 +89,14 @@ function AccountsTable({accounts}: {accounts: any[]}) {
         <TableBody>
           {accounts.map((account) => (
             <TableRow key={account.address} className="cursor-pointer" onClick={() => router.push(`/acc/${account.address}`)}>
-              <TableCell>{ abbreviateAddress(account.address) }</TableCell>
+              <TableCell>
+                { abbreviateAddress(account.address) }
+                <Button
+                variant={'link'}
+                className="size-5"
+                onClick={(e) => handleCopy(e, account.address)}
+              ><Copy /></Button>
+              </TableCell>
               <TableCell>${ abbreviateNumber(account.volumeUsd) }</TableCell>
               {/* <TableCell>{ formatGainLoss(account.pnlUsd, true, true) }</TableCell> */}
             </TableRow>
