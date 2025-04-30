@@ -87,27 +87,33 @@ async function fetchRelativeWallets(address: string, onLog?: (msg: string) => vo
 /**
  * 3) BFS Approach with optional 'onLog' callback for streaming logs.
  *
- * @param rootAddress The root wallet address.
+ * @param rootAddresses One root address **or** an array of root addresses.
  * @param maxDepth The normal max depth (default=1).
  * @param onLog Optional callback for streaming logs; if provided, we call onLog(msg) for each log line.
  *
  * If a child's score=100, we allow going one level deeper than maxDepth (i.e., maxDepth+1).
  */
 export async function getHighScoreAssociations(
-  rootAddress: string,
+  rootAddresses: string | string[],
   maxDepth = 1,
   onLog?: (msg: string) => void
 ): Promise<{
   accounts: Array<{ address: string; volumeUsd: number; level: number }>;
   accountLinks: Array<{ source: string; target: string; volumeUsd: string }>;
 }> {
+  const roots = Array.isArray(rootAddresses) ? rootAddresses : [rootAddresses];
+
   const log = (msg: string) => {
     onLog?.(msg);
     // If you also want console logs, uncomment:
     console.log(msg);
   };
 
-  log(`\n[Counting Relevance Score] => BFS from root: ${rootAddress}, maxDepth=${maxDepth}`);
+  log(
+    `\n[Counting Relevance Score] => BFS from root(s): ${roots.join(
+      ', '
+    )}, maxDepth=${maxDepth}`
+  );
 
   // BFS queue
   const queue: Array<{
@@ -127,16 +133,17 @@ export async function getHighScoreAssociations(
   // visited => addresses we've already fetched
   const visited = new Set<string>();
 
-  // Start with root in queue
-  queue.push({
-    address: rootAddress,
-    depth: 0,
-    parentAddress: undefined,
-    parentScore: 999, // artificially high => root can always link to children
-  });
-
-  // Put root into accountsMap with level=0, volumeUsd=0
-  accountsMap.set(rootAddress, { volumeUsd: 0, level: 0 });
+  // --- start the BFS with every root address ------------------------------
+  for (const root of roots) {
+    queue.push({
+      address: root,
+      depth: 0,
+      parentAddress: undefined,
+      parentScore: 999, // artificially high => root can always link to children
+    });
+    // Put each root into accountsMap with level=0, volumeUsd=0
+    accountsMap.set(root, { volumeUsd: 0, level: 0 });
+  }
 
   while (queue.length > 0) {
     const item = queue.shift()!;
