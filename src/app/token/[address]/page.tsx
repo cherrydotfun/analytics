@@ -178,8 +178,9 @@ export default function Page() {
 
                 {/* tabs */}
 
-                <ClusterTopHoldings
-                  holdings={data.financials.holdings}
+                <ClusterAssociatedAccounts
+                  accounts={data.associations?.accounts || []}
+                  accountLinks={data.associations?.accountLinks || []}
                   className="w-full flex"
                 />
 
