@@ -15,7 +15,7 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
     if (e.key === "Enter" && cleanSearchTerm) {
       e.preventDefault()
       if(isValidSolanaAddress(cleanSearchTerm)){
-        router.push(`/acc/${searchTerm}`);
+        router.push(`/search/${searchTerm}`);
       }else{
         toast.error('Please enter a valid Solana account address (public key)')
       }
@@ -32,7 +32,7 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
             id="search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search for an account address"
+            placeholder="Enter token or account address"
             className="w-3xs 3xs:w-2xs 2xs:w-xs xs:w-sm sm:w-md md:w-lg h-md pl-7"
             onKeyDown={handleKeyDown}
         />
