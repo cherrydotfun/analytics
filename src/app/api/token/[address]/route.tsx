@@ -5,10 +5,10 @@ import { abbreviateAddress } from '@/lib/formatting';
 
 export async function GET(
   request: Request,
-  { params }: { params: { tokenAddress: string } }
+  { params }: { params: { address: string } }
 ) {
   try {
-    const address = params.tokenAddress;
+    const address = params.address;
 
     const topHoldersResp = await getTopTokenHolders(address);
 
