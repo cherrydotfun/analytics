@@ -24,6 +24,8 @@ import { toast } from 'sonner';
 import { RefreshPageButton } from '@/components/refresh-page-button';
 import { truncateHeading } from '@/lib/formatting';
 import { ICluster } from '@/types/cluster';
+import { TokenRugScoreCard } from '@/components/widgets/token-rug-score-card';
+import { TokenRisksCard } from '@/components/widgets/token-risks-card';
 
 export default function Page() {
   const router = useRouter();
@@ -160,18 +162,19 @@ export default function Page() {
                   </div>
                 </div>
 
-                {/* <ClusterAddToWatchlist
+                <ClusterAddToWatchlist
                   id={data.id}
                   accounts={data.associations.accounts}
                   className="bg-card brightness-200"
-                /> */}
+                />
 
                 {/* cluster metrics */}
                 <div className="flex flex-col lg:flex-row  gap-4">
                   <div className="flex flex-col lg:w-1/2 gap-4">
-                    {/* <ClusterBalanceCard balanceUsd={data.financials.balanceUsd} /> */}
+                    <TokenRugScoreCard rugCheckScore={data?.rugCheckInfo?.score_normalised || null} ddXyzScore={data?.ddXyzInfo?.overallRisk || null} />
                     
                   </div>
+                  <TokenRisksCard risks={data?.rugCheckInfo?.risks || null } />
                   {/* <ClusterPnlCard pnlPerc={data.financials.pnlPerc} pnlUsd={data.financials.pnlUsd} unrealizedPnlUsd={data.financials.unrealizedPnlUsd} /> */}
                   {/* <ClusterAchievements achievements={data.achievements} className="lg:w-2/3 flex" /> */}
                 </div>

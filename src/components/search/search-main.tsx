@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 export function SearchForm({ ...props }: React.ComponentProps<"form">) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -15,7 +16,32 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
     if (e.key === "Enter" && cleanSearchTerm) {
       e.preventDefault()
       if(isValidSolanaAddress(cleanSearchTerm)){
-        router.push(`/search/${searchTerm}`);
+
+        fetch(`/api/search/${searchTerm}`, {method: 'GET'})
+        .then((res) => {
+          if(!res.ok) throw new Error('Bad response from server')
+          return res.json()
+        })
+        .then(({ type }) => {
+          if (type === 'wallet') {
+            router.push(`/acc/${searchTerm}`)
+          } else if (type === 'token') {
+            router.push(`/token/${searchTerm}`)
+          } 
+          else {
+            throw new Error('This address is not a valid account or token')
+          }
+        })
+        .catch((error) => {
+          toast.error('Error occurred', {
+            duration: 10,
+            description: error.message || "",
+          })
+        })
+        .finally(() => setIsLoading(false));
+
+
+        // router.push(`/search/${searchTerm}`);
       }else{
         toast.error('Please enter a valid Solana account address (public key)')
       }

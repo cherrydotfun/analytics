@@ -33,10 +33,12 @@ export default function Page() {
         // otherwise direct to 404 page
         if (payload.type === 'wallet') {
           setData("wallet")
-          router.push(`/acc/${address}`)
+          window.location.replace(`/acc/${address}`)
+          // router.push(`/acc/${address}`)
         } else if (payload.type === 'token') {
           setData("token")
-          router.push(`/token/${address}`)
+
+          // router.push(`/token/${address}`)
         } 
         else {
           setData(null)

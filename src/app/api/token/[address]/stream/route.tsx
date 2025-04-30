@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getTopTokenHolders } from '@/lib/token';
 import { getHighScoreAssociations } from '@/lib/wallet-associations';
+import { getDdXyzScore, getRugCheckScore } from '@/lib/rug-score';
 // import { abbreviateAddress } from '@/lib/formatting';
 
 export async function GET(
@@ -8,6 +9,9 @@ export async function GET(
   { params }: { params: { address: string } }
 ) {
   const address = params.address;
+  const rugCheckInfo = await getRugCheckScore(address);
+  const ddXyzInfo = await getDdXyzScore(address);
+  console.log(rugCheckInfo, ddXyzInfo);
 
   let topHoldersResp;
   try {
@@ -31,6 +35,7 @@ export async function GET(
 
   // 3) Kick off BFS with a logging callback
   getHighScoreAssociations(topHoldersResp?.topHolders.map(x => x.address?.address), 1, (logLine) => {
+  // getHighScoreAssociations(topHoldersResp?.topHolders.slice(0,3).map(x => x.address?.address), 0, (logLine) => {
     sseWrite(logLine);
   })
     .then((bfsResult) => {
@@ -41,6 +46,8 @@ export async function GET(
         symbol: topHoldersResp?.tokenSymbol,
         supply: topHoldersResp?.tokenSupply,
         associations: bfsResult,
+        rugCheckInfo,
+        ddXyzInfo,
       };
       sseWrite(`FINAL_RESULT: ${JSON.stringify(finalData)}`);
 
