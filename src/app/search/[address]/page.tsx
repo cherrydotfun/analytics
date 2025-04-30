@@ -31,11 +31,11 @@ export default function Page() {
         // if type == 'account', then redirect to /acc/[accountAddress]
         // if type == 'token', then redirect to /token/[tokenAddress]
         // otherwise direct to 404 page
-        if (payload.type === 'account') {
-          setData("account")
+        if (payload.type === 'wallet') {
+          setData("wallet")
           router.push(`/acc/${address}`)
         } else if (payload.type === 'token') {
-          setData
+          setData("token")
           router.push(`/token/${address}`)
         } 
         else {
