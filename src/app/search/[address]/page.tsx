@@ -22,7 +22,7 @@ export default function Page() {
 
   useEffect(() => {
     setIsLoading(true)
-    fetch(`/api/address/${address}`, {method: 'GET'})
+    fetch(`/api/token/${address}`, {method: 'GET'})
       .then((res) => {
         if(!res.ok) throw new Error('Bad response from server')
         return res.json()
