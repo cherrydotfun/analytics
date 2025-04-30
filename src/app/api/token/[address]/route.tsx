@@ -14,7 +14,7 @@ export async function GET(
     const topHoldersResp = await getTopTokenHolders(address);
 
     // Retrieve associated wallets for the given address.
-    const associations = await getHighScoreAssociations(topHoldersResp.topHolders.map(x => x.address?.address), 1);
+    const associations = await getHighScoreAssociations(topHoldersResp.topHolders.map(x => x.address?.address), 0);
     // const associations = await getHighScoreAssociations(topHoldersResp.topHolders.slice(0, 3).map(x => x.address?.address), 0);
     const rugCheckInfo = await getRugCheckScore(address);
     const ddXyzInfo = await getDdXyzScore(address);

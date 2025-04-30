@@ -34,7 +34,7 @@ export async function GET(
   }
 
   // 3) Kick off BFS with a logging callback
-  getHighScoreAssociations(topHoldersResp?.topHolders.map(x => x.address?.address), 1, (logLine) => {
+  getHighScoreAssociations(topHoldersResp?.topHolders.map(x => x.address?.address), 0, (logLine) => {
   // getHighScoreAssociations(topHoldersResp?.topHolders.slice(0,3).map(x => x.address?.address), 0, (logLine) => {
     sseWrite(logLine);
   })
