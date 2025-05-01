@@ -15,7 +15,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/headers/sidebar-header"
 import { ClusterBalanceCard } from "@/components/widgets/cluster-balance-card"
 import { ClusterPnlCard } from "@/components/widgets/cluster-pnl-card"
-import { ClusterAssociatedAccounts } from "@/components/widgets/cluster-accounts-card"
+import { ClusterAssociatedAccountsForToken } from "@/components/widgets/cluster-accounts-card"
 import { ClusterAchievements } from "@/components/widgets/cluster-achievements-card"
 import { ClusterTopHoldings } from "@/components/widgets/cluster-top-holdings-card"
 import { ClusterAddToWatchlist } from '@/components/widgets/cluster-add-to-watchlist';
@@ -181,12 +181,11 @@ export default function Page() {
 
                 {/* tabs */}
 
-                <ClusterAssociatedAccounts
+                <ClusterAssociatedAccountsForToken
                   accounts={data.associations?.accounts || []}
                   accountLinks={data.associations?.accountLinks || []}
                   className="w-full flex"
                 />
-
               </div>
             )}
           </SidebarInset>

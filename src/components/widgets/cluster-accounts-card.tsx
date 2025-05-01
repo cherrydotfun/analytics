@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import cytoscape from 'cytoscape';
 import { List, Network } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -344,4 +344,152 @@ export function ClusterAssociatedAccounts({
       </CardContent>
   </Card>
   )
+}
+
+export function ClusterAssociatedAccountsForToken({
+  accounts,
+  accountLinks,
+  ...props
+}: {
+  accounts: any[];
+  accountLinks: any[];
+  className?: string;
+}) {
+  const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
+
+  /* -------- identical clustering block -------- */
+  const clusters = useMemo(() => {
+    if (!accounts.length) return [];
+
+    const addrToAcc = new Map(accounts.map((a) => [a.address, a]));
+    const adj = new Map<string, string[]>();
+
+    accountLinks.forEach(({ source, target }) => {
+      adj.set(source, [...(adj.get(source) || []), target]);
+      adj.set(target, [...(adj.get(target) || []), source]);
+    });
+
+    const roots = accounts.filter((a) => a.level === 0).map((a) => a.address);
+    const seen = new Set<string>();
+    const result: { accounts: any[] }[] = [];
+
+    for (const root of roots) {
+      if (seen.has(root)) continue;
+
+      const stack = [root];
+      const cluster: any[] = [];
+
+      while (stack.length) {
+        const node = stack.pop()!;
+        if (seen.has(node)) continue;
+        seen.add(node);
+
+        const acc = addrToAcc.get(node);
+        if (acc) cluster.push(acc);
+
+        (adj.get(node) || []).forEach((nbr) => {
+          if (!seen.has(nbr)) stack.push(nbr);
+        });
+      }
+
+      result.push({ accounts: cluster });
+    }
+
+    return result;
+  }, [accounts, accountLinks]);
+  /* -------------------------------------------- */
+
+  return (
+    <Card {...props}>
+      <CardHeader>
+        <div className="flex flex-row justify-between">
+          <CardTitle>Associated accounts</CardTitle>
+          <div className="flex flex-row gap-2">
+            <Button
+              variant={viewMode === 'graph' ? 'default' : 'outline'}
+              onClick={() => setViewMode('graph')}
+              size="icon"
+            >
+              <Network />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              onClick={() => setViewMode('list')}
+              size="icon"
+            >
+              <List />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="grid gap-4">
+        {viewMode === 'list' ? (
+          <>
+            {clusters.map(({ accounts }, idx) => (
+              <div key={idx} className="space-y-2">
+                <h4 className="font-semibold tracking-tight">
+                  Cluster&nbsp;{idx + 1}
+                </h4>
+                <AccountsTableToken accounts={accounts} />
+              </div>
+            ))}
+          </>
+        ) : (
+          <AccountsGraph accounts={accounts} accountLinks={accountLinks} />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Table (roots first, then by volume)                                */
+/* ------------------------------------------------------------------ */
+function AccountsTableToken({ accounts }: { accounts: any[] }) {
+  const router = useRouter();
+
+  const rows = useMemo(() => {
+    return [...accounts].sort((a, b) => {
+      if (a.level === 0 && b.level !== 0) return -1;
+      if (b.level === 0 && a.level !== 0) return 1;
+      return b.volumeUsd - a.volumeUsd; // descending volume
+    });
+  }, [accounts]);
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Address</TableHead>
+          <TableHead>Volume</TableHead>
+        </TableRow>
+      </TableHeader>
+
+      <TableBody>
+        {rows.map((account) => (
+          <TableRow
+            key={account.address}
+            /* ------------ highlight roots ------------ */
+            className={`cursor-pointer ${
+              account.level === 0 ? 'bg-muted/50 font-semibold' : ''
+            }`}
+            onClick={() => router.push(`/acc/${account.address}`)}
+          >
+            <TableCell>
+              {abbreviateAddress(account.address)}
+              <Button
+                variant="link"
+                className="size-5"
+                onClick={(e) => handleCopy(e, account.address)}
+              >
+                <Copy />
+              </Button>
+            </TableCell>
+            <TableCell>${abbreviateNumber(account.volumeUsd)}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
 }
