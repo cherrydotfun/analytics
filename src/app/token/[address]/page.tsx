@@ -9,13 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Share, Copy } from "lucide-react"
 import { useRouter, useParams } from 'next/navigation';
-
 import IdentityIcon from "@/components/identicon"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/headers/sidebar-header"
 import { ClusterBalanceCard } from "@/components/widgets/cluster-balance-card"
 import { ClusterPnlCard } from "@/components/widgets/cluster-pnl-card"
-import { ClusterAssociatedAccounts } from "@/components/widgets/cluster-accounts-card"
+import { ClusterAssociatedAccountsForToken } from "@/components/widgets/cluster-accounts-card"
 import { ClusterAchievements } from "@/components/widgets/cluster-achievements-card"
 import { ClusterTopHoldings } from "@/components/widgets/cluster-top-holdings-card"
 import { ClusterAddToWatchlist } from '@/components/widgets/cluster-add-to-watchlist';
@@ -162,11 +161,12 @@ export default function Page() {
                   </div>
                 </div>
 
-                <ClusterAddToWatchlist
+                {/* TODO: add a button into the cluster table to add particular cluster to watchlist  */}
+                {/* <ClusterAddToWatchlist
                   id={data.id}
                   accounts={data.associations.accounts}
                   className="bg-card brightness-200"
-                />
+                /> */}
 
                 {/* cluster metrics */}
                 <div className="flex flex-col lg:flex-row  gap-4">
@@ -181,12 +181,11 @@ export default function Page() {
 
                 {/* tabs */}
 
-                <ClusterAssociatedAccounts
+                <ClusterAssociatedAccountsForToken
                   accounts={data.associations?.accounts || []}
                   accountLinks={data.associations?.accountLinks || []}
                   className="w-full flex"
                 />
-
               </div>
             )}
           </SidebarInset>
