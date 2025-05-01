@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Share, Copy } from "lucide-react"
 import { useRouter, useParams } from 'next/navigation';
-
 import IdentityIcon from "@/components/identicon"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/headers/sidebar-header"
@@ -162,11 +161,12 @@ export default function Page() {
                   </div>
                 </div>
 
-                <ClusterAddToWatchlist
+                {/* TODO: add a button into the cluster table to add particular cluster to watchlist  */}
+                {/* <ClusterAddToWatchlist
                   id={data.id}
                   accounts={data.associations.accounts}
                   className="bg-card brightness-200"
-                />
+                /> */}
 
                 {/* cluster metrics */}
                 <div className="flex flex-col lg:flex-row  gap-4">

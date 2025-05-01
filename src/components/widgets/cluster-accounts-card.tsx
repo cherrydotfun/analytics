@@ -3,6 +3,7 @@ import cytoscape from 'cytoscape';
 import { List, Network } from "lucide-react"
 import { useRouter } from "next/navigation"
 import fcose from 'cytoscape-fcose';
+import { Label } from "@/components/ui/label"
 
 cytoscape.use(fcose); // register the extension
 
@@ -357,7 +358,7 @@ export function ClusterAssociatedAccountsForToken({
 }) {
   const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
 
-  /* -------- identical clustering block -------- */
+  /* -------- connected-component clustering + volume --------------- */
   const clusters = useMemo(() => {
     if (!accounts.length) return [];
 
@@ -371,13 +372,14 @@ export function ClusterAssociatedAccountsForToken({
 
     const roots = accounts.filter((a) => a.level === 0).map((a) => a.address);
     const seen = new Set<string>();
-    const result: { accounts: any[] }[] = [];
+    const result: { accounts: any[]; totalVol: number }[] = [];
 
     for (const root of roots) {
       if (seen.has(root)) continue;
 
       const stack = [root];
       const cluster: any[] = [];
+      let clusterVol = 0;
 
       while (stack.length) {
         const node = stack.pop()!;
@@ -385,19 +387,22 @@ export function ClusterAssociatedAccountsForToken({
         seen.add(node);
 
         const acc = addrToAcc.get(node);
-        if (acc) cluster.push(acc);
+        if (acc) {
+          cluster.push(acc);
+          clusterVol += acc.volumeUsd;
+        }
 
         (adj.get(node) || []).forEach((nbr) => {
           if (!seen.has(nbr)) stack.push(nbr);
         });
       }
 
-      result.push({ accounts: cluster });
+      result.push({ accounts: cluster, totalVol: clusterVol });
     }
 
     return result;
   }, [accounts, accountLinks]);
-  /* -------------------------------------------- */
+  /* ---------------------------------------------------------------- */
 
   return (
     <Card {...props}>
@@ -426,10 +431,14 @@ export function ClusterAssociatedAccountsForToken({
       <CardContent className="grid gap-4">
         {viewMode === 'list' ? (
           <>
-            {clusters.map(({ accounts }, idx) => (
+            {clusters.map(({ accounts, totalVol }, idx) => (
               <div key={idx} className="space-y-2">
+                {/* cluster heading with total volume */}
                 <h4 className="font-semibold tracking-tight">
-                  Cluster&nbsp;{idx + 1}
+                  Cluster&nbsp;{idx + 1}&nbsp;
+                  <span className="text-muted-foreground text-sm font-normal">
+                    • ${abbreviateNumber(totalVol)}
+                  </span>
                 </h4>
                 <AccountsTableToken accounts={accounts} />
               </div>
@@ -444,8 +453,6 @@ export function ClusterAssociatedAccountsForToken({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Table (roots first, then by volume)                                */
-/* ------------------------------------------------------------------ */
 function AccountsTableToken({ accounts }: { accounts: any[] }) {
   const router = useRouter();
 
@@ -453,7 +460,7 @@ function AccountsTableToken({ accounts }: { accounts: any[] }) {
     return [...accounts].sort((a, b) => {
       if (a.level === 0 && b.level !== 0) return -1;
       if (b.level === 0 && a.level !== 0) return 1;
-      return b.volumeUsd - a.volumeUsd; // descending volume
+      return b.volumeUsd - a.volumeUsd;
     });
   }, [accounts]);
 
@@ -470,14 +477,19 @@ function AccountsTableToken({ accounts }: { accounts: any[] }) {
         {rows.map((account) => (
           <TableRow
             key={account.address}
-            /* ------------ highlight roots ------------ */
             className={`cursor-pointer ${
               account.level === 0 ? 'bg-muted/50 font-semibold' : ''
             }`}
             onClick={() => router.push(`/acc/${account.address}`)}
           >
-            <TableCell>
+            <TableCell className="flex items-center gap-2">
               {abbreviateAddress(account.address)}
+              {/* root label */}
+              {account.level === 0 && (
+                <div className="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
+                  token&nbsp;holder
+                </div>
+              )}
               <Button
                 variant="link"
                 className="size-5"
