@@ -1,4 +1,6 @@
 const KB_IP = process.env.CHERRY_KB;
+// number of workers to collect data
+const MAX_PARALLEL = 30;
 
 /**
  * 1) Compute association score
@@ -98,15 +100,13 @@ export async function getHighScoreAssociations(
   maxDepth = 1,
   onLog?: (msg: string) => void
 ): Promise<{
-  accounts: Array<{ address: string; volumeUsd: number; level: number }>;
-  accountLinks: Array<{ source: string; target: string; volumeUsd: string }>;
+  accounts: { address: string; volumeUsd: number; level: number }[];
+  accountLinks: { source: string; target: string; volumeUsd: string }[];
 }> {
   const roots = Array.isArray(rootAddresses) ? rootAddresses : [rootAddresses];
-
-  const log = (msg: string) => {
-    onLog?.(msg);
-    // If you also want console logs, uncomment:
-    console.log(msg);
+  const log = (m: string) => {
+    onLog?.(m);
+    console.log(m);
   };
 
   log(
@@ -115,148 +115,161 @@ export async function getHighScoreAssociations(
     )}, maxDepth=${maxDepth}`
   );
 
-  // BFS queue
-  const queue: Array<{
-    address: string;
-    depth: number;
-    parentAddress?: string;
-    parentScore?: number;
-  }> = [];
-
-  // We'll store final BFS data here:
+  const queue: QueueItem[] = [];
   const accountsMap = new Map<string, { volumeUsd: number; level: number }>();
-  const accountLinks: Array<{ source: string; target: string; volumeUsd: string }> = [];
-
-  // We track how many fetches we've done, skip if over 500
-  let fetchCount = 0;
-
-  // visited => addresses we've already fetched
+  const accountLinks: { source: string; target: string; volumeUsd: string }[] =
+    [];
   const visited = new Set<string>();
 
-  // --- start the BFS with every root address ------------------------------
-  for (const root of roots) {
-    queue.push({
-      address: root,
-      depth: 0,
-      parentAddress: undefined,
-      parentScore: 999, // artificially high => root can always link to children
-    });
-    // Put each root into accountsMap with level=0, volumeUsd=0
-    accountsMap.set(root, { volumeUsd: 0, level: 0 });
+  for (const r of roots) {
+    queue.push({ address: r, depth: 0, parentScore: 999 });
+    accountsMap.set(r, { volumeUsd: 0, level: 0 });
   }
 
-  while (queue.length > 0) {
-    const item = queue.shift()!;
-    const { address, depth, parentAddress, parentScore } = item;
+  const fetchCountRef = { value: 0 };
 
-    if (visited.has(address)) {
-      log(`[BFS] => Already visited ${address}, skipping fetch`);
-      continue;
-    }
-    visited.add(address);
-
-    if (fetchCount >= 500) {
-      log(`[BFS] => Reached 500 fetch limit, stopping BFS`);
-      break;
-    }
-
-    log(`[BFS] => Processing address=${address}, depth=${depth}, parent=${parentAddress}, parentScore=${parentScore}`);
-    const associated = await fetchRelativeWallets(address, onLog);
-    fetchCount++;
-
-    if (associated.length > 200) {
-      log(`[BFS] => Address ${address} is spammy (${associated.length}), skipping entirely`);
-      continue;
-    }
-
-    // Map each association to a score + volume from all.totalUsd
-    const scored = associated.map((r) => {
-      const s = computeAssociationScore(r);
-      const assocVolumeUsd = parseFloat(r.all?.totalUsd || '0');
-      return {
-        address: r.entity_id,  // or r.address if you prefer
-        score: s,
-        volumeUsd: assocVolumeUsd,
-      };
-    });
-
-    // Sort by descending score, limit to top 20
-    scored.sort((a, b) => b.score - a.score);
-    const top20 = scored.slice(0, 20);
-
-    log(`[BFS] => Found ${associated.length}, took most relative addresses by volume for ${address}`);
-
-    for (const child of top20) {
-      if (child.volumeUsd < 1) {
-        log(`[BFS] => Child ${child.address} has low volumeUsd=${child.volumeUsd}, skip.`);
-        continue;
-      }
-      if (child.score < 90) {
-        log(`[BFS] => Child ${child.address} has low score=${child.score}, skip.`);
-        continue;
-      }
-
-      log(`[BFS] => Child discovered: address=${child.address}, score=${child.score}, volume=${child.volumeUsd}`);
-      const childDepth = depth + 1;
-
-      // Update accountsMap if needed
-      const oldEntry = accountsMap.get(child.address);
-      if (!oldEntry) {
-        accountsMap.set(child.address, { volumeUsd: child.volumeUsd, level: childDepth });
-        log(`[BFS] => New address => ${child.address}, level=${childDepth}, vol=${child.volumeUsd}`);
-      } else {
-        // If discovered at smaller depth => keep that. If bigger volume => update volume
-        if (childDepth < oldEntry.level) {
-          accountsMap.set(child.address, { volumeUsd: child.volumeUsd, level: childDepth });
-          log(`[BFS] => Found smaller depth for ${child.address} => level=${childDepth}, vol=${child.volumeUsd}`);
-        } else if (child.volumeUsd > oldEntry.volumeUsd) {
-          accountsMap.set(child.address, { volumeUsd: (oldEntry.volumeUsd + child.volumeUsd), level: oldEntry.level });
-          log(`[BFS] => Found more volume for ${child.address}, vol=${child.volumeUsd}`);
-        }
-      }
-
-      // If we have a parent with score≥80 => create a link
-      if (parentAddress && (parentScore ?? 0) >= 80) {
-        log(`[BFS] => Link: ${parentAddress} -> ${child.address}, volume=${child.volumeUsd}`);
-        accountLinks.push({
-          source: parentAddress,
-          target: child.address,
-          volumeUsd: child.volumeUsd.toString(),
-        });
-      }
-
-      // BFS depth logic:
-      // If child's score=100 => allow (maxDepth+1), else if≥90 => up to maxDepth
-      if (child.score === 100 && childDepth < (maxDepth + 1)) {
-        queue.push({
-          address: child.address,
-          depth: childDepth,
-          parentAddress: child.address,
-          parentScore: child.score
-        });
-      } else if (child.score >= 90 && childDepth < maxDepth) {
-        queue.push({
-          address: child.address,
-          depth: childDepth,
-          parentAddress: child.address,
-          parentScore: child.score
-        });
-      }
-    }
+  /* main loop with simple async-pool */
+  while (queue.length) {
+    const batch = queue.splice(0, MAX_PARALLEL); // take up to N
+    await Promise.all(
+      batch.map((item) =>
+        processNode(
+          item,
+          queue,
+          visited,
+          accountsMap,
+          accountLinks,
+          maxDepth,
+          log,
+          fetchCountRef,
+          onLog
+        )
+      )
+    );
   }
 
-  // Convert accountsMap -> final array
-  const accounts: Array<{ address: string; volumeUsd: number; level: number }> = [];
-  for (const [addr, data] of accountsMap.entries()) {
-    accounts.push({
-      address: addr,
-      volumeUsd: data.volumeUsd,
-      level: data.level,
-    });
-  }
-  // Sort by ascending level
-  accounts.sort((a, b) => a.level - b.level);
+  const accounts = [...accountsMap.entries()]
+    .map(([address, { volumeUsd, level }]) => ({ address, volumeUsd, level }))
+    .sort((a, b) => a.level - b.level);
 
-  log(`[BFS] => BFS completed. Found ${accounts.length} addresses, and ${accountLinks.length} links.`);
+  log(
+    `[BFS] => BFS completed. Found ${accounts.length} addresses, and ${accountLinks.length} links.`
+  );
   return { accounts, accountLinks };
+}
+
+
+type QueueItem = {
+  address: string;
+  depth: number;
+  parentAddress?: string;
+  parentScore?: number;
+};
+
+/* one worker for a single queue item ─ extracted from the old loop */
+async function processNode(
+  item: QueueItem,
+  queue: QueueItem[],
+  visited: Set<string>,
+  accountsMap: Map<string, { volumeUsd: number; level: number }>,
+  accountLinks: { source: string; target: string; volumeUsd: string }[],
+  maxDepth: number,
+  log: (m: string) => void,
+  fetchCountRef: { value: number },
+  onLog?: (msg: string) => void
+) {
+  const { address, depth, parentAddress, parentScore } = item;
+
+  if (visited.has(address)) {
+    log(`[BFS] => Already visited ${address}, skipping fetch`);
+    return;
+  }
+  visited.add(address);
+
+  if (fetchCountRef.value >= 500) {
+    log(`[BFS] => Reached 500 fetch limit, skipping ${address}`);
+    return;
+  }
+
+  log(
+    `[BFS] => Processing address=${address}, depth=${depth}, parent=${parentAddress}, parentScore=${parentScore}`
+  );
+
+  const associated = await fetchRelativeWallets(address, onLog);
+  fetchCountRef.value += 1;
+
+  if (associated.length > 200) {
+    log(
+      `[BFS] => Address ${address} is spammy (${associated.length}), skipping entirely`
+    );
+    return;
+  }
+
+  const scored = associated
+    .map((r) => {
+      const s = computeAssociationScore(r);
+      const vol = parseFloat(r.all?.totalUsd || '0');
+      return { address: r.entity_id, score: s, volumeUsd: vol };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 20); // top-20
+
+  log(
+    `[BFS] => Found ${associated.length}, took most relative addresses by volume for ${address}`
+  );
+
+  for (const child of scored) {
+    if (child.volumeUsd < 1 || child.score < 90) {
+      log(
+        `[BFS] => Child ${child.address} filtered (score=${child.score}, vol=${child.volumeUsd})`
+      );
+      continue;
+    }
+
+    log(
+      `[BFS] => Child discovered: ${child.address}, score=${child.score}, vol=${child.volumeUsd}`
+    );
+
+    const childDepth = depth + 1;
+    const old = accountsMap.get(child.address);
+    if (!old) {
+      accountsMap.set(child.address, {
+        volumeUsd: child.volumeUsd,
+        level: childDepth,
+      });
+    } else {
+      if (childDepth < old.level) {
+        accountsMap.set(child.address, {
+          volumeUsd: child.volumeUsd,
+          level: childDepth,
+        });
+      } else if (child.volumeUsd > old.volumeUsd) {
+        accountsMap.set(child.address, {
+          volumeUsd: old.volumeUsd + child.volumeUsd,
+          level: old.level,
+        });
+      }
+    }
+
+    if (parentAddress && (parentScore ?? 0) >= 80) {
+      accountLinks.push({
+        source: parentAddress,
+        target: child.address,
+        volumeUsd: child.volumeUsd.toString(),
+      });
+    }
+
+    /* enqueue child respecting depth rules */
+    if (
+      (child.score === 100 && childDepth < maxDepth + 1) ||
+      (child.score >= 90 && childDepth < maxDepth)
+    ) {
+      queue.push({
+        address: child.address,
+        depth: childDepth,
+        parentAddress: child.address,
+        parentScore: child.score,
+      });
+    }
+  }
 }
