@@ -1,6 +1,6 @@
 const KB_IP = process.env.CHERRY_KB;
 // number of workers to collect data
-const MAX_PARALLEL = 30;
+const MAX_PARALLEL = 20;
 
 /**
  * 1) Compute association score
