@@ -31,7 +31,7 @@ export async function GET(
   }
 
   // 3) Kick off BFS with a logging callback
-  getHighScoreAssociations(address, 2, (logLine) => {
+  getHighScoreAssociations(address, 1, (logLine) => {
     sseWrite(logLine);
   })
     .then((bfsResult) => {

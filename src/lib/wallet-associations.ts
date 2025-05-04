@@ -1,6 +1,6 @@
 const KB_IP = process.env.CHERRY_KB;
 // number of workers to collect data
-const MAX_PARALLEL = 20;
+const MAX_PARALLEL = 16;
 
 /**
  * 1) Compute association score
@@ -122,8 +122,8 @@ export async function getHighScoreAssociations(
   const visited = new Set<string>();
 
   for (const r of roots) {
-    queue.push({ address: r, depth: 0, parentScore: 999 });
-    accountsMap.set(r, { volumeUsd: 0, level: 0 });
+    queue.push({ address: r, depth: 0, parentScore: 999, parentAddress:r });
+    accountsMap.set(r, { volumeUsd: 1000, level: 0 });
   }
 
   const fetchCountRef = { value: 0 };
