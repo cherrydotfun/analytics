@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import type { Metadata } from 'next';
 import {
   SidebarInset,
@@ -14,7 +14,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/headers/sidebar-header"
 import { ClusterBalanceCard } from "@/components/widgets/cluster-balance-card"
 import { ClusterPnlCard } from "@/components/widgets/cluster-pnl-card"
-import { ClusterAssociatedAccountsForToken } from "@/components/widgets/cluster-accounts-card"
+import { ClusterAssociatedAccountsForToken } from "@/components/widgets/cluster-token-card"
 import { ClusterAchievements } from "@/components/widgets/cluster-achievements-card"
 import { ClusterTopHoldings } from "@/components/widgets/cluster-top-holdings-card"
 import { ClusterAddToWatchlist } from '@/components/widgets/cluster-add-to-watchlist';
@@ -182,8 +182,7 @@ export default function Page() {
                 {/* tabs */}
 
                 <ClusterAssociatedAccountsForToken
-                  accounts={data.associations?.accounts || []}
-                  accountLinks={data.associations?.accountLinks || []}
+                  clusters={data.clusters}
                   className="w-full flex"
                 />
               </div>

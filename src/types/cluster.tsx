@@ -41,6 +41,7 @@ export interface IClusterSummary {
 }
 
 export interface ICluster {
+    percentagePerWallet: {}
     id: string,
     name: string,
     financials: {

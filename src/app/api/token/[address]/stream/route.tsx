@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getTopTokenHolders } from '@/lib/token';
+import { getTopTokenHolders, buildClusters } from '@/lib/token';
 import { getHighScoreAssociations } from '@/lib/wallet-associations';
 import { getDdXyzScore, getRugCheckScore } from '@/lib/rug-score';
 // import { abbreviateAddress } from '@/lib/formatting';
@@ -8,63 +8,77 @@ export async function GET(
   request: Request,
   { params }: { params: { address: string } }
 ) {
-  const address = params.address;
-  const rugCheckInfo = await getRugCheckScore(address);
-  const ddXyzInfo = await getDdXyzScore(address);
-  console.log(rugCheckInfo, ddXyzInfo);
+    const address = params.address;
 
-  let topHoldersResp;
-  try {
-    topHoldersResp = await getTopTokenHolders(address);
-  } catch (err) {
-    console.error('[SSE] => Error fetching top holders:', err);
-    // gotta handle somehow
-    topHoldersResp = null;
-  }
+    /* ───────────────── external calls ───────────────── */
+    const [rugCheckInfo, ddXyzInfo] = await Promise.all([
+      getRugCheckScore(address),
+      getDdXyzScore(address),
+    ]);
+  
+    let topHoldersResp: any = null;
 
-  // 2) Create a TransformStream to write SSE logs
-  const { readable, writable } = new TransformStream();
-  const writer = writable.getWriter();
-  const encoder = new TextEncoder();
+    try {
+      topHoldersResp = await getTopTokenHolders(address);
+    } catch (err) {
+      console.error('[SSE] → Error fetching top holders:', err);
+    }
 
-  // Helper to send SSE lines
-  function sseWrite(line: string) {
-    const chunk = `data: ${line}\n\n`;
-    writer.write(encoder.encode(chunk));
-  }
+    try {
+        topHoldersResp = await getTopTokenHolders(address);
+    } catch (err) {
+        console.error('[SSE] => Error fetching top holders:', err);
+        // gotta handle somehow
+        topHoldersResp = null;
+    }
 
-  // 3) Kick off BFS with a logging callback
-  getHighScoreAssociations(topHoldersResp?.topHolders.map(x => x.address?.address), 1, (logLine) => {
-  // getHighScoreAssociations(topHoldersResp?.topHolders.slice(0,3).map(x => x.address?.address), 0, (logLine) => {
-    sseWrite(logLine);
-  })
-    .then((bfsResult) => {
-      // BFS is done => send final JSON containing BFS + PNL data
-      const finalData = {
-        id: address,
-        name: topHoldersResp?.tokenName,
-        symbol: topHoldersResp?.tokenSymbol,
-        supply: topHoldersResp?.tokenSupply,
-        associations: bfsResult,
-        rugCheckInfo,
-        ddXyzInfo,
-      };
-      sseWrite(`FINAL_RESULT: ${JSON.stringify(finalData)}`);
+    /* ───────────────── helpers ───────────────── */
+    const { readable, writable } = new TransformStream();
+    const writer  = writable.getWriter();
+    const encoder = new TextEncoder();
+    const sseWrite = (line: string) =>
+        writer.write(encoder.encode(`data: ${line}\n\n`));
 
-      // Close the stream
-      writer.close();
-    })
-    .catch((err) => {
-      sseWrite(`ERROR: ${err.message}`);
-      writer.close();
+    /* ───────────────── BFS + clusters ───────────────── */
+    getHighScoreAssociations(
+        topHoldersResp?.topHolders.map((x: any) => x.address?.address),
+        1,
+        sseWrite
+    )
+        .then((associations) => {
+        // build clusters **after** BFS so we have full account + link lists
+        const clusters = buildClusters(
+            associations.accounts,        // full account list from BFS
+            associations.accountLinks,    // full link list from BFS
+            topHoldersResp?.tokenSupply
+        );
+
+        console.log(clusters);
+
+        const finalData = {
+            id: address,
+            name:   topHoldersResp?.tokenName,
+            symbol: topHoldersResp?.tokenSymbol,
+            supply: topHoldersResp?.tokenSupply,
+            clusters,
+            rugCheckInfo,
+            ddXyzInfo,
+        };
+
+        sseWrite(`FINAL_RESULT: ${JSON.stringify(finalData)}`);
+        writer.close();
+        })
+        .catch((err) => {
+        sseWrite(`ERROR: ${err.message}`);
+        writer.close();
+        });
+
+    /* ───────────────── SSE response ───────────────── */
+    return new NextResponse(readable, {
+        headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+        },
     });
-
-  // 4) Return SSE response
-  return new NextResponse(readable, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-    },
-  });
 }

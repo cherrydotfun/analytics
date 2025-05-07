@@ -26,7 +26,7 @@ export async function getTopTokenHolders(address: string): Promise<{
         let tokenName = '';
         let tokenAddress = '';
         let tokenSymbol = '';
-        let tokenSupply = 0;
+        let tokenSupply = data.totalSupply?.solana || 0;
 
         if (data.token){
             tokenName = data.token.name;
@@ -54,4 +54,94 @@ export async function getTopTokenHolders(address: string): Promise<{
     }
   // theoretically never gets here
   throw new Error(`Unexpected logic flow for getTopTokenHolders: ${address}`);
+}
+
+/**
+ * Cluster structure the UI consumes
+ *
+ * {
+ *   id            : number                  // 1, 2, 3…
+ *   accounts      : {
+ *     address     : string;
+ *     level       : number;
+ *     volumeUsd   : number;
+ *     balance     : number;                 // raw token balance
+ *     supplyPct   : number;                 // xx.xx  (two‑dec % of total supply)
+ *   }[];
+ *   accountLinks  : { source: string; target: string }[];
+ *   totalVol      : number;                 // Σ volumeUsd
+ *   totalPct      : number;                 // Σ supplyPct  (two‑dec)
+ * }
+ */
+export function buildClusters(
+  accounts: any[],
+  accountLinks: { source: string; target: string }[],
+  tokenSupply: number
+) {
+  if (!accounts?.length) return [];
+
+  /* -------- adjacency list -------- */
+  const addrToAcc = new Map(accounts.map((a) => [a.address, a]));
+  const adj       = new Map<string, string[]>();
+
+  accountLinks.forEach(({ source, target }) => {
+    adj.set(source, [...(adj.get(source) || []), target]);
+    adj.set(target, [...(adj.get(target) || []), source]);
+  });
+
+  /* -------- DFS over roots -------- */
+  const roots = accounts.filter((a) => a.level === 0).map((a) => a.address);
+  const seen  = new Set<string>();
+  const clusters: any[] = [];
+
+  for (const root of roots) {
+    if (seen.has(root)) continue;
+
+    const stack: string[] = [root];
+    const cAccs: any[]   = [];
+    const cAddrSet       = new Set<string>();
+    let   totalVol       = 0;
+    let   totalPct       = 0;
+
+    while (stack.length) {
+      const node = stack.pop()!;
+      if (seen.has(node)) continue;
+      seen.add(node);
+
+      const acc = addrToAcc.get(node);
+      if (acc) {
+        /* ------------ per‑wallet % & balance ------------ */
+        const balance   = Number(acc.balance ?? 0);
+        const supplyPct =
+          tokenSupply === 0
+            ? 0
+            : Math.round((balance / tokenSupply) * 100 * 100) / 100; // 2‑dp
+
+        cAccs.push({ ...acc, balance, supplyPct });
+        cAddrSet.add(node);
+
+        totalVol += acc.volumeUsd;
+        totalPct += supplyPct;
+      }
+
+      (adj.get(node) || []).forEach((nbr) => {
+        if (!seen.has(nbr)) stack.push(nbr);
+      });
+    }
+
+    /* only links inside this cluster */
+    const cLinks = accountLinks.filter(
+      ({ source, target }) => cAddrSet.has(source) && cAddrSet.has(target)
+    );
+
+    clusters.push({
+      id: clusters.length + 1,   // 1‑based index
+      accounts: cAccs,
+      accountLinks: cLinks,
+      totalVol,
+      totalPct: Math.round(totalPct * 100) / 100, // clamp to 2‑dp once
+    });
+  }
+
+  return clusters;
 }
