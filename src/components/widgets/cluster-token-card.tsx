@@ -453,7 +453,7 @@ export function ClusterAssociatedAccountsForToken({
       <CardContent className="grid gap-4">
         {viewMode === 'list' ? (
           clusters.map((cluster) => (
-            <div key={cluster.id} className="space-y-2">
+            <div key={cluster.id} className="space-y-2 flex-nowrap overflow-x-scroll">
               <h4 className="font-semibold tracking-tight">
                 Cluster&nbsp;{cluster.id}&nbsp;
                 <span className="text-muted-foreground text-sm font-normal">
