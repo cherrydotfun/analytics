@@ -76,32 +76,41 @@ export async function getTopTokenHolders(address: string): Promise<{
 export function buildClusters(
   accounts: any[],
   accountLinks: { source: string; target: string }[],
-  tokenSupply: number
+  tokenSupply: number,
+  topHolders: { address: { address: string }; balance: number }[]
 ) {
   if (!accounts?.length) return [];
 
-  /* -------- adjacency list -------- */
-  const addrToAcc = new Map(accounts.map((a) => [a.address, a]));
-  const adj       = new Map<string, string[]>();
+  /* --------------------------------------------- *
+   * 1. quick look‑ups                             *
+   * --------------------------------------------- */
+  const addrToAcc     = new Map(accounts.map((a) => [a.address, a]));
+  const addrToBalance = new Map(
+    topHolders.map((h) => [h.address.address, Number(h.balance ?? 0)]),
+  );
 
+  const adj = new Map<string, string[]>();
   accountLinks.forEach(({ source, target }) => {
     adj.set(source, [...(adj.get(source) || []), target]);
     adj.set(target, [...(adj.get(target) || []), source]);
   });
 
-  /* -------- DFS over roots -------- */
-  const roots = accounts.filter((a) => a.level === 0).map((a) => a.address);
-  const seen  = new Set<string>();
-  const clusters: any[] = [];
+  /* roots = level‑0 accounts */
+  const roots    = accounts.filter((a) => a.level === 0).map((a) => a.address);
+  const seen     = new Set<string>();
+  const clusters = [];
 
+  /* --------------------------------------------- *
+   * 2. DFS per root → build a cluster             *
+   * --------------------------------------------- */
   for (const root of roots) {
     if (seen.has(root)) continue;
 
-    const stack: string[] = [root];
-    const cAccs: any[]   = [];
-    const cAddrSet       = new Set<string>();
-    let   totalVol       = 0;
-    let   totalPct       = 0;
+    const stack     = [root];
+    const cAccs     = [];
+    const cAddrSet  = new Set<string>();
+    let   totalVol  = 0;
+    let   totalPct  = 0;
 
     while (stack.length) {
       const node = stack.pop()!;
@@ -110,12 +119,11 @@ export function buildClusters(
 
       const acc = addrToAcc.get(node);
       if (acc) {
-        /* ------------ per‑wallet % & balance ------------ */
-        const balance   = Number(acc.balance ?? 0);
+        const balance   = addrToBalance.get(acc.address) ?? 0;
         const supplyPct =
           tokenSupply === 0
             ? 0
-            : Math.round((balance / tokenSupply) * 100 * 100) / 100; // 2‑dp
+            : Math.round((balance / tokenSupply) * 100 * 100) / 100;
 
         cAccs.push({ ...acc, balance, supplyPct });
         cAddrSet.add(node);
@@ -124,22 +132,20 @@ export function buildClusters(
         totalPct += supplyPct;
       }
 
-      (adj.get(node) || []).forEach((nbr) => {
-        if (!seen.has(nbr)) stack.push(nbr);
-      });
+      (adj.get(node) || []).forEach((nbr) => !seen.has(nbr) && stack.push(nbr));
     }
 
-    /* only links inside this cluster */
+    /* edges internal to this cluster */
     const cLinks = accountLinks.filter(
-      ({ source, target }) => cAddrSet.has(source) && cAddrSet.has(target)
+      ({ source, target }) => cAddrSet.has(source) && cAddrSet.has(target),
     );
 
     clusters.push({
-      id: clusters.length + 1,   // 1‑based index
+      id: clusters.length + 1,
       accounts: cAccs,
       accountLinks: cLinks,
       totalVol,
-      totalPct: Math.round(totalPct * 100) / 100, // clamp to 2‑dp once
+      totalPct: Math.round(totalPct * 100) / 100,
     });
   }
 

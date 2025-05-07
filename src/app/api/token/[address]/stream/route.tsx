@@ -50,7 +50,8 @@ export async function GET(
         const clusters = buildClusters(
             associations.accounts,        // full account list from BFS
             associations.accountLinks,    // full link list from BFS
-            topHoldersResp?.tokenSupply
+            topHoldersResp?.tokenSupply,
+            topHoldersResp?.topHolders
         );
 
         console.log(clusters);

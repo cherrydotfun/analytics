@@ -338,10 +338,10 @@ export default function AccountsTableForToken({
 }: {
   cluster: {
     accounts: Array<{
+      balance: number;
       address: string;
       level: number;
       volumeUsd: number;
-      tokenBalance: number;
       supplyPct: number; // already rounded to 2 dp in buildClusters
     }>;
   };
@@ -363,7 +363,7 @@ export default function AccountsTableForToken({
         <TableRow>
           <TableHead>Address</TableHead>
           <TableHead>Volume</TableHead>
-          <TableHead>Balance</TableHead>
+          <TableHead>Token Balance</TableHead>
           <TableHead className="text-right">Supply&nbsp;%</TableHead>
         </TableRow>
       </TableHeader>
@@ -399,7 +399,7 @@ export default function AccountsTableForToken({
               <TableCell key="vol">${abbreviateNumber(a.volumeUsd)}</TableCell>,
 
               /* balance cell ------------------------------------------------ */
-              <TableCell key="bal">{abbreviateNumber(a.tokenBalance)}</TableCell>,
+              <TableCell key="bal">{abbreviateNumber(a.balance)}</TableCell>,
 
               /* percentage cell -------------------------------------------- */
               <TableCell key="pct" className="text-right">
