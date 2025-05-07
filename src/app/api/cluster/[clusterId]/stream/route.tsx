@@ -132,7 +132,7 @@ export async function GET(
           // 5c) Also fetch BFS associations for this wallet at maxDepth=1
           sseWrite(`[SSE] => BFS for wallet ${walletAddress}...`);
           const { accounts: bfsAddresses, accountLinks: bfsLinks } =
-            await getHighScoreAssociations(walletAddress, 1, (logLine) => {
+            await getHighScoreAssociations(walletAddress, 0, (logLine) => {
               // each BFS log line
               sseWrite(`[BFS:${walletAddress}] ${logLine}`);
             });
