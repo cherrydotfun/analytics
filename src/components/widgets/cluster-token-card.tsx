@@ -157,7 +157,7 @@ export function AccountsGraphForToken({
     const cy = cytoscape({
       container: graphRef.current,
       elements: cyElements,
-      minZoom: 0.2,
+      minZoom: 0.15,
       maxZoom: 2,
       style: [
         {
@@ -342,11 +342,12 @@ export default function AccountsTableForToken({
       address: string;
       level: number;
       volumeUsd: number;
-      supplyPct: number; // already rounded to 2 dp in buildClusters
+      supplyPct: number;
     }>;
   };
 }) {
   const router = useRouter();
+
   const rows = useMemo(
     () =>
       [...cluster.accounts].sort((a, b) => {
@@ -354,7 +355,7 @@ export default function AccountsTableForToken({
         if (b.level === 0 && a.level !== 0) return 1;
         return b.volumeUsd - a.volumeUsd;
       }),
-    [cluster.accounts]
+    [cluster.accounts],
   );
 
   return (
@@ -377,13 +378,12 @@ export default function AccountsTableForToken({
             }`}
             onClick={() => router.push(`/acc/${a.address}`)}
           >
-            {[
-              /* address cell ------------------------------------------------ */
-              <TableCell key="addr" className="flex items-center gap-2">
+            <TableCell>
+              <div className="flex flex-row items-center gap-2">
                 {abbreviateAddress(a.address)}
                 {a.level === 0 && (
-                  <div className="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
-                    token&nbsp;holder
+                  <div className="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-600 whitespace-nowrap">
+                    token holder
                   </div>
                 )}
                 <Button
@@ -393,19 +393,16 @@ export default function AccountsTableForToken({
                 >
                   <Copy />
                 </Button>
-              </TableCell>,
+              </div>
+            </TableCell>
 
-              /* volume cell ------------------------------------------------- */
-              <TableCell key="vol">${abbreviateNumber(a.volumeUsd)}</TableCell>,
+            <TableCell>${abbreviateNumber(a.volumeUsd)}</TableCell>
 
-              /* balance cell ------------------------------------------------ */
-              <TableCell key="bal">{abbreviateNumber(a.balance)}</TableCell>,
+            <TableCell>{abbreviateNumber(a.balance)}</TableCell>
 
-              /* percentage cell -------------------------------------------- */
-              <TableCell key="pct" className="text-right">
-                {a.supplyPct.toFixed(2)}%
-              </TableCell>,
-            ]}
+            <TableCell className="text-right">
+              {a.supplyPct.toFixed(2)}%
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -433,7 +430,7 @@ export function ClusterAssociatedAccountsForToken({
     <Card className={className}>
       <CardHeader>
         <div className="flex justify-between">
-          <CardTitle>Associated accounts</CardTitle>
+          <CardTitle> Found {clusters.length} clusters ({clusters.map(x => x.totalPct).reduce((a, b) => { return a + b; }, 0).toFixed(2)}% of supply)</CardTitle>
           <div className="flex gap-2">
             <Button
               variant={viewMode === 'graph' ? 'default' : 'outline'}
@@ -468,8 +465,6 @@ export function ClusterAssociatedAccountsForToken({
                   {abbreviateNumber(cluster.totalVol)}
                 </span>
               </h4>
-
-              {/* table now needs only the cluster */}
               <AccountsTableForToken cluster={cluster} />
             </div>
           ))
