@@ -114,9 +114,9 @@ function beamPositions(
   links: { source: string; target: string }[],
 ) {
   /* tweakables */
-  const BASE_RADIUS = 1200; // radius for level-1
-  const STEP        = 800; // extra radius per depth
-  const GAP         = 1.2; // radian gap between sibling slices
+  const BASE_RADIUS = 500; // radius for level-1
+  const STEP        = 300; // extra radius per depth
+  const GAP         = 0.5; // radian gap between sibling slices
   /* ---------------------------------- */
 
   /* build undirected adjacency */
@@ -157,13 +157,14 @@ function beamPositions(
     angleStart: number,
     angleEnd: number,
     depth: number,
+    i = 0
   ) {
     if (visited.has(node)) return;
     visited.add(node);
 
     /* polar → cartesian */
     const angle = (angleStart + angleEnd) / 2;
-    const r = BASE_RADIUS + STEP * (depth - 1.5);
+    const r = BASE_RADIUS + STEP * (depth - 1) + i * 30 + Math.floor(Math.random() * 500);
     pos[node] = { x: r * Math.cos(angle), y: r * Math.sin(angle) };
 
     /* children = neighbours not yet visited & exactly one level deeper */
@@ -181,7 +182,7 @@ function beamPositions(
     kids.forEach((child, i) => {
       const s = angleStart + i * (sector + GAP);
       const e = s + sector;
-      placeSubtree(child, node, s, e, depth + 1);
+      placeSubtree(child, node, s, e, depth + 1, i);
     });
   }
 }
