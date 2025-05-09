@@ -35,13 +35,13 @@ import { handleCopy } from "@/lib/utils/copy-to-clipboard";
 // TODO: add these into a separate file
 // Define 7 "bins" for node sizes
 function getNodeSize(volume: number) {
-  if (volume < 10) return 10
-  if (volume < 100) return 20
-  if (volume < 1000) return 30
-  if (volume < 10_000) return 50
-  if (volume < 100_000) return 80
-  if (volume < 1_000_000) return 130
-  return 10
+  if (volume < 10) return 10*1.25
+  if (volume < 100) return 20*1.25
+  if (volume < 1000) return 30*1.25
+  if (volume < 10_000) return 50*1.25
+  if (volume < 100_000) return 80*1.25
+  if (volume < 1_000_000) return 130*1.25
+  return 10*1.25
 }
 
 // Define 7 "bins" for edge sizes
@@ -77,13 +77,87 @@ const nodeColors = {
   "default": "#fff"
 }
 
+/** multiRootBeamPositions – for ONE cluster
+ *  level-0 wallets = roots on a large circle, evenly spaced
+ *  every deeper level fans out on the same beam slice
+ */
+function multiRootBeamPositions(
+  accounts: { address: string; level: number }[],
+  links: { source: string; target: string }[],
+) {
+  const ROOT_RING = 400;  // distance of level-0 nodes from cluster centre
+  const STEP      = 400;  // extra radius per depth
+  const GAP       = 0.5; // radian gap between sibling wedges
+
+  /* undirected adjacency */
+  const adj = new Map<string, string[]>();
+  links.forEach(({ source, target }) => {
+    adj.set(source, [...(adj.get(source) || []), target]);
+    adj.set(target, [...(adj.get(target) || []), source]);
+  });
+
+  /* buckets by level */
+  const buckets: Record<number, string[]> = {};
+  accounts.forEach((a) => ((buckets[a.level] ||= []).push(a.address)));
+
+  const roots   = buckets[0] ?? [];
+  const pos: Record<string, { x: number; y: number }> = {};
+  const visited = new Set<string>();
+
+  const slice = (2 * Math.PI) / Math.max(roots.length, 1);
+
+  roots.forEach((addr, idx) => {
+    const a0 = idx * slice + GAP / 2;
+    const a1 = (idx + 1) * slice - GAP / 2;
+
+    /* root position */
+    const ang = (a0 + a1) / 2;
+    pos[addr] = { x: ROOT_RING * Math.cos(ang), y: ROOT_RING * Math.sin(ang) };
+    visited.add(addr);
+
+    placeSubtree(addr, null, a0, a1, 1);
+  });
+
+  return pos;
+
+  /* ---------- recursion ---------- */
+  function placeSubtree(
+    node: string,
+    parent: string | null,
+    aStart: number,
+    aEnd: number,
+    depth: number,
+  ) {
+    const kids = (adj.get(node) || []).filter(
+      (n) =>
+        n !== parent &&
+        !visited.has(n) &&
+        (buckets[depth] || []).includes(n),
+    );
+    if (!kids.length) return;
+
+    const span   = aEnd - aStart;
+    const sector = (span - GAP * (kids.length - 1)) / kids.length;
+
+    kids.forEach((child, i) => {
+      const s   = aStart + i * (sector + GAP);
+      const e   = s + sector;
+      const ang = (s + e) / 2;
+      const r   = ROOT_RING + STEP * depth + i * 90 + Math.floor(Math.random() * 600);;
+      pos[child] = { x: r * Math.cos(ang), y: r * Math.sin(ang) };
+      visited.add(child);
+      placeSubtree(child, node, s, e, depth + 1);
+    });
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /*  Config knobs                                                      */
 /* ------------------------------------------------------------------ */
 const COMPONENT_SPACING    = 300;   // fcose space between components
 const CLUSTER_GAP          = 300;   // default gap for big clusters
 const FIT_PADDING          = 80;    // padding for cy.fit()
-const INITIAL_ZOOM_FACTOR  = 0.9;   // start a tad zoomed‑out
+// const INITIAL_ZOOM_FACTOR  = 0.5;   // start a tad zoomed‑out
 const SMALL_CLUSTER_GAP    = 120;  // gap for clusters < 10 wallets
 const ROW_GAP              = 200;  // vertical distance between rows
 const COLS                 = 8;    // how many clusters per row
@@ -102,7 +176,6 @@ export function AccountsGraphForToken({
 }) {
   const graphRef = useRef<HTMLDivElement>(null);
 
-  /* tooltip state */
   const [tooltip, setTooltip] = useState({
     x: 0,
     y: 0,
@@ -111,7 +184,7 @@ export function AccountsGraphForToken({
     volume: '',
   });
 
-  /* build Cytoscape elements from clusters */
+  /* build Cytoscape elements ------------------------------------ */
   const cyElements = useMemo(() => {
     const elems: cytoscape.ElementDefinition[] = [];
     clusters.forEach((c) => {
@@ -150,15 +223,15 @@ export function AccountsGraphForToken({
     return elems;
   }, [clusters]);
 
-  /* draw / redraw */
+  /* draw --------------------------------------------------------- */
   const drawGraph = () => {
     if (!graphRef.current) return;
 
     const cy = cytoscape({
       container: graphRef.current,
       elements: cyElements,
-      minZoom: 0.15,
-      maxZoom: 2,
+      minZoom: 0.08,
+      maxZoom: 3,
       style: [
         {
           selector: 'node',
@@ -180,108 +253,95 @@ export function AccountsGraphForToken({
           selector: 'edge',
           style: {
             'line-color': '#949494',
-            'line-opacity': 'data(_opacity)',
+            // 'line-opacity': 'data(_opacity)',
+            'opacity': 0.3,
             width: 'data(_size)',
           },
         },
       ],
     });
 
-    /* layoutstop must be attached BEFORE we run the layout */
-    cy.one('layoutstop', () => {
-      /* delay one tick so fcose has written final positions */
-      setTimeout(() => {
-        const multi = clusters
-            /* large‑to‑small */
-            .sort((a, b) => b.accounts.length - a.accounts.length);
-        if (multi.length) {
-            let cursorX   = 0;   // x within row
-            let cursorY   = 0;   // y offset of the row
-            let colIndex  = 0;   // current filled columns in row (0–COLS)
-            let rowHeight = 0;   // tallest cluster in row
-          
-            cy.batch(() => {
-              multi.forEach((c) => {
-                const count = c.accounts.length;
-          
-                /* determine size tier */
-                const columnsUsed =
-                  count >= 90 ? COLS : count >= 30 ? 2 : 1; // XL=3, L=2, S=1
-                const gap =
-                  count < 10 ? SMALL_CLUSTER_GAP : CLUSTER_GAP; // gap added after cluster
-          
-                /* start new row if this cluster won't fit */
-                if (colIndex + columnsUsed > COLS) {
-                  cursorX   = 0;
-                  cursorY  += rowHeight + ROW_GAP;
-                  rowHeight = 0;
-                  colIndex  = 0;
-                }
-          
-                /* bounding box BEFORE shift */
-                const sub = cy.elements(`[cluster="c${c.id}"]`);
-                const bb  = sub.boundingBox();
-          
-                /* shift cluster */
-                const shiftX = cursorX - bb.x1;
-                const shiftY = cursorY - bb.y1;
-                sub.positions((n) => ({
-                  x: n.position().x + shiftX,
-                  y: n.position().y + shiftY,
-                }));
-          
-                /* update cursors */
-                colIndex += columnsUsed;
-          
-                /* XL fills the whole row immediately */
-                if (columnsUsed === COLS) {
-                  cursorX   = 0;
-                  cursorY  += bb.h + ROW_GAP;
-                  rowHeight = 0;
-                  colIndex  = 0;
-                } else {
-                  cursorX  += bb.w + gap;
-                  rowHeight = Math.max(rowHeight, bb.h);
-                }
-              });
-            });
-        }
+    /* ------------------------------------------------------------ *
+     *  (1) preset positions INSIDE each cluster                    *
+     * ------------------------------------------------------------ */
+    const presetPos: Record<string, { x: number; y: number }> = {};
+    clusters.forEach((c) =>
+      Object.assign(presetPos, multiRootBeamPositions(c.accounts, c.accountLinks)),
+    );
 
-        /* final pan / zoom + redraw */
-        cy.fit(undefined, FIT_PADDING);
-        cy.zoom(cy.zoom() * INITIAL_ZOOM_FACTOR);
-        cy.layout({ name: 'preset', fit: false, animate: false }).run(); // force repaint
-      }, 0);
+    cy.one('layoutstop', () => {
+      /* ---------------------------------------------------------- *
+       *  (2) shift WHOLE clusters into the grid (unchanged code)   *
+       * ---------------------------------------------------------- */
+      const multi = [...clusters].sort((a, b) => b.accounts.length - a.accounts.length);
+
+      let cursorX = 0;
+      let cursorY = 0;
+      let colIndex = 0;
+      let rowHeight = 0;
+
+      cy.batch(() => {
+        multi.forEach((c) => {
+          const count = c.accounts.length;
+          const columnsUsed = count >= 90 ? COLS : count >= 30 ? 2 : 1;
+          const gap = count < 10 ? SMALL_CLUSTER_GAP : CLUSTER_GAP;
+
+          if (colIndex + columnsUsed > COLS) {
+            cursorX = 0;
+            cursorY += rowHeight + ROW_GAP;
+            rowHeight = 0;
+            colIndex = 0;
+          }
+
+          const sub = cy.elements(`[cluster="c${c.id}"]`);
+          const bb = sub.boundingBox();
+          const shiftX = cursorX - bb.x1;
+          const shiftY = cursorY - bb.y1;
+
+          sub.positions((n) => ({
+            x: n.position().x + shiftX,
+            y: n.position().y + shiftY,
+          }));
+
+          colIndex += columnsUsed;
+
+          if (columnsUsed === COLS) {
+            cursorX = 0;
+            cursorY += bb.h + ROW_GAP;
+            rowHeight = 0;
+            colIndex = 0;
+          } else {
+            cursorX += bb.w + gap;
+            rowHeight = Math.max(rowHeight, bb.h);
+          }
+        });
+      });
+
+      cy.fit(undefined, FIT_PADDING);
+    //   cy.zoom(cy.zoom() * INITIAL_ZOOM_FACTOR);
+      cy.layout({ name: 'preset', fit: false, animate: false }).run();
     });
 
-    /* run fcose */
     cy.layout({
-      name: 'fcose',
-      componentSpacing: COMPONENT_SPACING,
-      nodeRepulsion: (n) => 20000 + (n.data('volume') ?? 0) * 0.3,
-      idealEdgeLength: 400,
-      nodeSeparation: 800,
-      gravity: 0.2,
-      gravityRange: 3.0,
-      randomize: true,
-      animate: true,
-      animationDuration: 0,
+      name: 'preset',
+      positions: (n) => presetPos[n.id()] || { x: 0, y: 0 },
+      fit: false,
+      animate: false,
     }).run();
 
-    /* tooltip handlers */
+    /* tool-tips -------------------------------------------------- */
     const dpr = window.devicePixelRatio || 1;
     cy.on('mouseover', 'node', (e) => {
-      const node = e.target;
-      const pos = node.renderedPosition();
+      const n = e.target;
+      const p = n.renderedPosition();
       const rect = graphRef.current?.getBoundingClientRect();
       if (!rect) return;
-
       setTooltip({
-        x: rect.left + pos.x / dpr + 2,
-        y: rect.top + pos.y / dpr + 2,
+        x: rect.left + p.x / dpr + 2,
+        y: rect.top + p.y / dpr + 2,
         visible: true,
-        address: node.data('fullAddress'),
-        volume: '$' + (node.data('volume') ?? 0).toLocaleString(),
+        address: n.data('fullAddress'),
+        volume: '$' + (n.data('volume') ?? 0).toLocaleString(),
       });
     });
     cy.on('mouseout', 'node', () =>
@@ -293,18 +353,17 @@ export function AccountsGraphForToken({
     });
   };
 
-  /* effects */
+  /* effects ------------------------------------------------------ */
   useEffect(drawGraph, [cyElements]);
   useEffect(() => {
     window.addEventListener('resize', drawGraph);
     return () => window.removeEventListener('resize', drawGraph);
   }, [cyElements]);
 
-  /* render */
+  /* render ------------------------------------------------------- */
   return (
     <>
       <div ref={graphRef} className="w-full aspect-[2/1]" />
-
       {tooltip.visible && (
         <div
           style={{
