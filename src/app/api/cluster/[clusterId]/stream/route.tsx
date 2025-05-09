@@ -72,7 +72,7 @@ export async function GET(
       >();
 
       // 4) Structures to merge BFS data from each wallet
-      const mergedAddressesMap = new Map<string, number>();
+      const mergedAddressesMap = new Map<string, any>();
       const mergedLinksMap = new Map<string, number>();
 
       // 5) Process each wallet in the cluster
@@ -139,10 +139,13 @@ export async function GET(
 
           // Merge BFS addresses
           for (const addrObj of bfsAddresses) {
-            const { address, volumeUsd } = addrObj;
-            const oldVol = mergedAddressesMap.get(address) || 0;
-            if (volumeUsd > oldVol) {
-              mergedAddressesMap.set(address, volumeUsd);
+            const { address, volumeUsd, level } = addrObj;
+            if (mergedAddressesMap.has(address)) {
+              const existing = mergedAddressesMap.get(address);
+              existing.volume += volumeUsd;
+              existing.level = Math.min(existing.level, level);
+            } else {
+              mergedAddressesMap.set(address, { address, volume: volumeUsd, level });
             }
           }
 
@@ -169,10 +172,12 @@ export async function GET(
 
       // 7) Build BFS "associatedNetwork"
       const mergedAddresses: Array<{ address: string; volumeUsd: number; level: number }> = [];
-      for (const [addr, vol] of mergedAddressesMap.entries()) {
-        // If you want to tag "level=1" for addresses in the cluster, else 999
-        const currentLevel = addresses.includes(addr) ? 1 : 999;
-        mergedAddresses.push({ address: addr, volumeUsd: vol, level: currentLevel });
+      for (const [addr, data] of mergedAddressesMap.entries()) {
+        mergedAddresses.push({
+          address: addr,
+          volumeUsd: data.volume,
+          level: data.level,
+        });
       }
       mergedAddresses.sort((a, b) => b.volumeUsd - a.volumeUsd);
 

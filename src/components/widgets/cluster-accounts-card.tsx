@@ -33,13 +33,13 @@ import { handleCopy } from "@/lib/utils/copy-to-clipboard";
 
 // Define 7 "bins" for node sizes
 function getNodeSize(volume: number) {
-  if (volume < 10) return 10
-  if (volume < 100) return 20
-  if (volume < 1000) return 30
-  if (volume < 10_000) return 50
-  if (volume < 100_000) return 80
-  if (volume < 1_000_000) return 130
-  return 10
+  if (volume < 10) return 10*1.5
+  if (volume < 100) return 20*1.5
+  if (volume < 1000) return 30*1.5
+  if (volume < 10_000) return 50*1.5
+  if (volume < 100_000) return 80*1.5
+  if (volume < 1_000_000) return 130*1.5
+  return 10*1.5
 }
 
 // Define 7 "bins" for edge sizes
@@ -69,11 +69,18 @@ function getEdgeOpacity(volume: number) {
 }
 
 const nodeColors = {
-  "0": "#FF3C12",
-  "1": "#FFA500",
-  "2": "#00D443",
-  "default": "#fff"
-}
+  /* level-0  ─ darkest: black-cherry / merlot */
+  "0": "#4B0000",   // almost-black cherry
+
+  /* level-1  ─ deep, saturated cherry red */
+  "1": "#B00020",   // vivid crimson
+
+  /* level-2  ─ bright glazed-cherry tint */
+  "2": "#FF5252",   // light scarlet
+
+  /* deeper   ─ very pale cherry-blossom wash */
+  "default": "#FFE8E8", // near-white pink
+};
 
 function AccountsTable({accounts}: {accounts: any[]}) {
   const router = useRouter();
@@ -113,76 +120,83 @@ function beamPositions(
   accounts: { address: string; level: number }[],
   links: { source: string; target: string }[],
 ) {
-  /* tweakables */
-  const BASE_RADIUS = 500; // radius for level-1
-  const STEP        = 300; // extra radius per depth
-  const GAP         = 0.5; // radian gap between sibling slices
-  /* ---------------------------------- */
+  /* tweakables -------------------------------------------------- */
+  const ROOT_RING  = 600; // distance between roots if >1 root
+  const BASE_R1    = 600; // level-1 radius  (single-root case)
+  const STEP       = 500; // extra per depth
+  const GAP        = 0.5; // radians gap between sibling wedges
+  /* ------------------------------------------------------------- */
 
-  /* build undirected adjacency */
+  /* build undirected adjacency --------------------------------- */
   const adj = new Map<string, string[]>();
   links.forEach(({ source, target }) => {
     adj.set(source, [...(adj.get(source) || []), target]);
     adj.set(target, [...(adj.get(target) || []), source]);
   });
 
-  /* buckets by level (already pre-computed in data) */
+  /* buckets by level */
   const buckets: Record<number, string[]> = {};
   accounts.forEach((a) => ((buckets[a.level] ||= []).push(a.address)));
 
+  const roots = buckets[0] ?? [];
   const pos: Record<string, { x: number; y: number }> = {};
   const visited = new Set<string>();
 
-  const root = buckets[0]?.[0];
-  if (!root) return pos;
-  pos[root] = { x: 0, y: 0 };
-  visited.add(root);
+  /* ---------- SINGLE-ROOT CASE -------------------------------- */
+  if (roots.length <= 1) {
+    const root = roots[0];
+    if (!root) return pos;
+    pos[root] = { x: 0, y: 0 };
+    visited.add(root);
 
-  /* level-1 nodes → equal slices around full circle */
-  const firstRing = buckets[1] ?? [];
-  const slice = (2 * Math.PI) / Math.max(firstRing.length, 1);
+    layoutSubtree(root, 0, 2 * Math.PI, 1);
+    return pos;
+  }
 
-  firstRing.forEach((addr, idx) => {
-    const a0 = idx * slice + GAP / 2;
-    const a1 = (idx + 1) * slice - GAP / 2;
-    placeSubtree(addr, root, a0, a1, 1);
+  /* ---------- MULTI-ROOT CASE --------------------------------- */
+  const slice = (2 * Math.PI) / roots.length;
+
+  roots.forEach((addr, idx) => {
+    const a0   = idx * slice + GAP / 2;
+    const a1   = (idx + 1) * slice - GAP / 2;
+    const mid  = (a0 + a1) / 2;
+
+    /* place root on ROOT_RING */
+    pos[addr] = { x: ROOT_RING * Math.cos(mid), y: ROOT_RING * Math.sin(mid) };
+    visited.add(addr);
+
+    layoutSubtree(addr, a0, a1, 1);
   });
 
   return pos;
 
-  /* -------------------------------------------------------------- */
-  function placeSubtree(
+  /* ------------------------------------------------------------ */
+  function layoutSubtree(
     node: string,
-    parent: string,
-    angleStart: number,
-    angleEnd: number,
+    angStart: number,
+    angEnd: number,
     depth: number,
-    i = 0
   ) {
-    if (visited.has(node)) return;
-    visited.add(node);
-
-    /* polar → cartesian */
-    const angle = (angleStart + angleEnd) / 2;
-    const r = BASE_RADIUS + STEP * (depth - 1) + i * 30 + Math.floor(Math.random() * 500);
-    pos[node] = { x: r * Math.cos(angle), y: r * Math.sin(angle) };
-
-    /* children = neighbours not yet visited & exactly one level deeper */
+    /* level of children = depth in this recursive frame */
     const kids = (adj.get(node) || []).filter(
       (n) =>
-        !visited.has(n) &&
-        (buckets[depth + 1] || []).includes(n),
+        !visited.has(n) && (buckets[depth] || []).includes(n),
     );
     if (!kids.length) return;
 
-    /* subdivide this slice among children */
-    const span = angleEnd - angleStart;
+    const span   = angEnd - angStart;
     const sector = (span - GAP * (kids.length - 1)) / kids.length;
 
     kids.forEach((child, i) => {
-      const s = angleStart + i * (sector + GAP);
-      const e = s + sector;
-      placeSubtree(child, node, s, e, depth + 1, i);
+      const s   = angStart + i * (sector + GAP);
+      const e   = s + sector;
+      const ang = (s + e) / 2;
+      const base = roots.length === 1 ? BASE_R1 : ROOT_RING + STEP; // level-1 radius
+      const r   = base + STEP * (depth - 1) + i * 45 + Math.floor(Math.random() * 1000); 
+
+      pos[child] = { x: r * Math.cos(ang), y: r * Math.sin(ang) };
+      visited.add(child);
+      layoutSubtree(child, s, e, depth + 1);
     });
   }
 }
@@ -250,7 +264,8 @@ export function AccountsGraph({ accounts, accountLinks }: Props) {
           selector: 'edge',
           style: {
             'line-color': '#949494',
-            'line-opacity': 'data(_opacity)',
+            // 'line-opacity': 'data(_opacity)',
+            'line-opacity': 0.4,
             width: 'data(_size)',
           },
         },
@@ -268,6 +283,19 @@ export function AccountsGraph({ accounts, accountLinks }: Props) {
       animate: true,
       animationDuration: 600,
     }).run();
+
+    cy.layout({
+      name: 'fcose',
+      randomize: false,     // start from current coordinates
+      fit: false,
+      nodeRepulsion: 35000,  // stronger push-apart
+      idealEdgeLength: 200,  // keep parent–child somewhat tight
+      edgeElasticity: 0.2,
+      gravity: 0.3,         // mild inward pull so beams stay radially aligned
+      gravityRange: 2.5,
+      componentSpacing: 0,  // we’re only nudging inside each cluster
+      animate: false,       // instant calc; we’ll animate grid shift later
+      }).run();
 
     /* tooltips */
     const dpr = window.devicePixelRatio || 1;

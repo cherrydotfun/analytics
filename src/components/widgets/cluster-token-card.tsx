@@ -71,11 +71,18 @@ function getEdgeOpacity(volume: number) {
 }
 
 const nodeColors = {
-  "0": "#FF3C12",
-  "1": "#FFA500",
-  "2": "#00D443",
-  "default": "#fff"
-}
+    /* level-0  ─ darkest: black-cherry / merlot */
+    "0": "#4B0000",   // almost-black cherry
+  
+    /* level-1  ─ deep, saturated cherry red */
+    "1": "#B00020",   // vivid crimson
+  
+    /* level-2  ─ bright glazed-cherry tint */
+    "2": "#FF5252",   // light scarlet
+  
+    /* deeper   ─ very pale cherry-blossom wash */
+    "default": "#FFE8E8", // near-white pink
+  };
 
 /** multiRootBeamPositions – for ONE cluster
  *  level-0 wallets = roots on a large circle, evenly spaced
