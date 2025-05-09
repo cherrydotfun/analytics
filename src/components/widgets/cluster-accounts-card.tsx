@@ -106,59 +106,127 @@ function AccountsTable({accounts}: {accounts: any[]}) {
     )
 }
 
+/* ------------------------------------------------------------------ *
+ *  deterministic "beam" positions                                      *
+ * ------------------------------------------------------------------ */
+function beamPositions(
+  accounts: { address: string; level: number }[],
+  links: { source: string; target: string }[],
+) {
+  /* tweakables */
+  const BASE_RADIUS = 1200; // radius for level-1
+  const STEP        = 800; // extra radius per depth
+  const GAP         = 1.2; // radian gap between sibling slices
+  /* ---------------------------------- */
+
+  /* build undirected adjacency */
+  const adj = new Map<string, string[]>();
+  links.forEach(({ source, target }) => {
+    adj.set(source, [...(adj.get(source) || []), target]);
+    adj.set(target, [...(adj.get(target) || []), source]);
+  });
+
+  /* buckets by level (already pre-computed in data) */
+  const buckets: Record<number, string[]> = {};
+  accounts.forEach((a) => ((buckets[a.level] ||= []).push(a.address)));
+
+  const pos: Record<string, { x: number; y: number }> = {};
+  const visited = new Set<string>();
+
+  const root = buckets[0]?.[0];
+  if (!root) return pos;
+  pos[root] = { x: 0, y: 0 };
+  visited.add(root);
+
+  /* level-1 nodes → equal slices around full circle */
+  const firstRing = buckets[1] ?? [];
+  const slice = (2 * Math.PI) / Math.max(firstRing.length, 1);
+
+  firstRing.forEach((addr, idx) => {
+    const a0 = idx * slice + GAP / 2;
+    const a1 = (idx + 1) * slice - GAP / 2;
+    placeSubtree(addr, root, a0, a1, 1);
+  });
+
+  return pos;
+
+  /* -------------------------------------------------------------- */
+  function placeSubtree(
+    node: string,
+    parent: string,
+    angleStart: number,
+    angleEnd: number,
+    depth: number,
+  ) {
+    if (visited.has(node)) return;
+    visited.add(node);
+
+    /* polar → cartesian */
+    const angle = (angleStart + angleEnd) / 2;
+    const r = BASE_RADIUS + STEP * (depth - 1.5);
+    pos[node] = { x: r * Math.cos(angle), y: r * Math.sin(angle) };
+
+    /* children = neighbours not yet visited & exactly one level deeper */
+    const kids = (adj.get(node) || []).filter(
+      (n) =>
+        !visited.has(n) &&
+        (buckets[depth + 1] || []).includes(n),
+    );
+    if (!kids.length) return;
+
+    /* subdivide this slice among children */
+    const span = angleEnd - angleStart;
+    const sector = (span - GAP * (kids.length - 1)) / kids.length;
+
+    kids.forEach((child, i) => {
+      const s = angleStart + i * (sector + GAP);
+      const e = s + sector;
+      placeSubtree(child, node, s, e, depth + 1);
+    });
+  }
+}
 
 export function AccountsGraph({ accounts, accountLinks }: Props) {
-  const graphRef = useRef<HTMLDivElement>(null)
-
-  // Tooltip state: (x, y) coords + info to display
-  const [tooltip, setTooltip] = useState<{
-    x: number
-    y: number
-    visible: boolean
-    address: string
-    volume: any
-  }>({
+  const graphRef = useRef<HTMLDivElement>(null);
+  const [tooltip, setTooltip] = useState({
     x: 0,
     y: 0,
     visible: false,
     address: '',
-    volume: 0,
-  })
+    volume: '',
+  });
 
-  // Convert accounts to Cytoscape nodes
-  const nodes = accounts.map(account => ({
-    data: {
-      id: account.address,
-      label: abbreviateAddress(account.address),
-      fullAddress: account.address,  // for tooltip
-      volume: account.volumeUsd,
-      level: account.level,
-      _size: getNodeSize(account.volumeUsd),
-      _color: nodeColors[String(account.level)] ?? nodeColors.default,
-    }
-  }))
+  /* Cytoscape draw */
+  const draw = () => {
+    if (!graphRef.current) return;
 
-  // Convert links to Cytoscape edges
-  const edges = accountLinks.map(link => ({
-    data: {
-      id: `${link.source}-${link.target}`,
-      source: link.source,
-      target: link.target,
-      volume: link.volumeUsd,
-      _size: getEdgeSize(link.volumeUsd),
-      _opacity: getEdgeOpacity(link.volumeUsd),
-    }
-  }))
+    const nodes = accounts.map((a) => ({
+      data: {
+        id: a.address,
+        label: abbreviateAddress(a.address),
+        fullAddress: a.address,
+        volume: a.volumeUsd,
+        level: a.level,
+        _size: getNodeSize(a.volumeUsd),
+        _color: nodeColors[String(a.level)] ?? nodeColors.default,
+      },
+    }));
 
-  const drawGraph = () => {
-    if (!graphRef.current) return
+    const edges = accountLinks.map((l) => ({
+      data: {
+        id: `${l.source}-${l.target}`,
+        source: l.source,
+        target: l.target,
+        volume: l.volumeUsd,
+        _size: getEdgeSize(l.volumeUsd),
+        _opacity: getEdgeOpacity(l.volumeUsd),
+      },
+    }));
 
     const cy = cytoscape({
       container: graphRef.current,
       elements: [...nodes, ...edges],
-      zoom: 1,
-      // limit how far in/out users can zoom
-      minZoom: 0.2,
+      minZoom: 0.1,
       maxZoom: 2,
       style: [
         {
@@ -166,7 +234,6 @@ export function AccountsGraph({ accounts, accountLinks }: Props) {
           style: {
             label: 'data(label)',
             'background-color': 'data(_color)',
-            // Outline for label contrast
             'text-outline-width': 1,
             'text-outline-color': '#000',
             color: '#fff',
@@ -176,7 +243,7 @@ export function AccountsGraph({ accounts, accountLinks }: Props) {
             'font-weight': 'bold',
             'text-halign': 'center',
             'text-valign': 'center',
-          }
+          },
         },
         {
           selector: 'edge',
@@ -184,134 +251,82 @@ export function AccountsGraph({ accounts, accountLinks }: Props) {
             'line-color': '#949494',
             'line-opacity': 'data(_opacity)',
             width: 'data(_size)',
-          }
-        }
-      ]
-    })
+          },
+        },
+      ],
+    });
 
-    // Use a force-based layout (fcose) for better distribution
+    /* radial beam preset */
+    const preset = beamPositions(accounts, accountLinks);
+
     cy.layout({
-      name: 'fcose',
-      // Scale repulsion by volume
-      nodeRepulsion: (node) => 20000 + (node.data('volume') ?? 0) * 0.2,
-      idealEdgeLength: 150,
-      nodeSeparation: 150,
-      gravity: 0.2,
-      gravityRange: 2.0,
-      packComponents: true,
-      randomize: true,
+      name: 'preset',
+      positions: (n) => preset[n.id()] || { x: 0, y: 0 },
+      fit: true,
+      padding: 60,
       animate: true,
-      animationDuration: 3500,
-      animationEasing: 'ease-out-cubic'
-    }).run()
+      animationDuration: 600,
+    }).run();
 
-    // Device pixel ratio for hiDPI screens
-    const dpr = window.devicePixelRatio || 1
-
-    // ---------------------------
-    // MOUSE/EVENT HANDLERS
-    // ---------------------------
-    // 1. Show tooltip on hover
-    // Show tooltip on node hover
-    cy.on('mouseover', 'node', (event) => {
-      const node = event.target
-      const pos = node.renderedPosition()
-
-      // Distance from top-left of page for the container
-      const rect = graphRef.current?.getBoundingClientRect()
-      if (!rect) return
-
-      // Convert Cytoscape rendered coords to page coords
-      // Often dividing by dpr helps correct for retina/zoom mismatch
-      const x = rect.left + pos.x / dpr
-      const y = rect.top + pos.y / dpr
-
+    /* tooltips */
+    const dpr = window.devicePixelRatio || 1;
+    cy.on('mouseover', 'node', (e) => {
+      const n = e.target;
+      const p = n.renderedPosition();
+      const rect = graphRef.current?.getBoundingClientRect();
+      if (!rect) return;
       setTooltip({
-        x,
-        y,
+        x: rect.left + p.x / dpr + 2,
+        y: rect.top + p.y / dpr + 2,
         visible: true,
-        address: node.data('fullAddress'),
-        volume: '$' + parseFloat(parseFloat(node.data('volume')).toFixed(2)),
-      })
-    })
+        address: n.data('fullAddress'),
+        volume: '$' + (n.data('volume') ?? 0).toLocaleString(),
+      });
+    });
+    cy.on('mouseout', 'node', () =>
+      setTooltip((prev) => ({ ...prev, visible: false })),
+    );
+    cy.on('tap', (e) => {
+      if (e.target === cy)
+        setTooltip((prev) => ({ ...prev, visible: false }));
+    });
+  };
 
-    // Hide tooltip on mouse out
-    cy.on('mouseout', 'node', () => {
-      setTooltip((prev) => ({ ...prev, visible: false }))
-    })
-
-    // Show tooltip on tap/click (if you like)
-    cy.on('tap', 'node', (event) => {
-      const node = event.target
-      const pos = node.renderedPosition()
-      const rect = graphRef.current?.getBoundingClientRect()
-      if (!rect) return
-
-      const x = rect.left + pos.x / dpr
-      const y = rect.top + pos.y / dpr
-
-      setTooltip({
-        x,
-        y,
-        visible: true,
-        address: node.data('fullAddress'),
-        volume: '$' + parseFloat(parseFloat(node.data('volume')).toFixed(2)),
-      })
-    })
-
-    // Hide tooltip if user taps the empty space
-    cy.on('tap', (event) => {
-      if (event.target === cy) {
-        setTooltip((prev) => ({ ...prev, visible: false }))
-      }
-    })
-
-    // Optionally disable user panning/zooming if you want a fixed layout
-    // cy.panningEnabled(false)
-    // cy.userZoomingEnabled(false)
-    cy.center();
-    cy.zoom(1);
-  }
-
-  // Draw graph whenever accounts or accountLinks changes
+  useEffect(draw, [accounts, accountLinks]);
   useEffect(() => {
-    drawGraph()
-  }, [accounts, accountLinks])
-
-  // Redraw on window resize
-  useEffect(() => {
-    window.addEventListener('resize', drawGraph)
-    return () => window.removeEventListener('resize', drawGraph)
-  }, [])
+    window.addEventListener('resize', draw);
+    return () => window.removeEventListener('resize', draw);
+  }, [accounts, accountLinks]);
 
   return (
     <>
-      {/* Container that Cytoscape uses */}
       <div ref={graphRef} className="w-full aspect-[2/1]" />
-
-      {/* A simple absolutely-positioned tooltip */}
       {tooltip.visible && (
         <div
           style={{
             position: 'absolute',
-            left: tooltip.x + 2, // offset a bit so the tooltip doesn't overlap the cursor
-            top: tooltip.y + 2,
+            left: tooltip.x,
+            top: tooltip.y,
             pointerEvents: 'none',
-            background: 'rgba(0, 0, 0, 0.8)',
+            background: 'rgba(0,0,0,0.8)',
             color: '#fff',
             padding: '6px 8px',
-            borderRadius: '4px',
+            borderRadius: 4,
             fontSize: '0.85rem',
             whiteSpace: 'nowrap',
             zIndex: 1000,
           }}
         >
-          <div><strong>Address:</strong> {tooltip.address}</div>
-          <div><strong>Volume:</strong> {tooltip.volume}</div>
+          <div>
+            <strong>Address:</strong> {tooltip.address}
+          </div>
+          <div>
+            <strong>Volume:</strong> {tooltip.volume}
+          </div>
         </div>
       )}
     </>
-  )
+  );
 }
 
 export function ClusterAssociatedAccounts({
@@ -344,340 +359,4 @@ export function ClusterAssociatedAccounts({
       </CardContent>
   </Card>
   )
-}
-
-export function AccountsGraphForToken({ clusters }: Props) {
-  const graphRef = useRef<HTMLDivElement>(null);
-
-  /* ───────────────── tooltip state ───────────────── */
-  const [tooltip, setTooltip] = useState({
-    x: 0,
-    y: 0,
-    visible: false,
-    address: '',
-    volume: '',
-  });
-
-  /* ───────────────── memoised cytoscape elements ───────────────── */
-  const cyElements = useMemo(() => {
-    const elems: cytoscape.ElementDefinition[] = [];
-
-    clusters.forEach((c, idx) => {
-      const clusterTag = `c${c.id}`;  // node.data('cluster') value
-
-      // 1. nodes
-      c.accounts.forEach((acc) => {
-        elems.push({
-          group: 'nodes',
-          data: {
-            id: acc.address,
-            cluster: clusterTag,
-            label: abbreviateAddress(acc.address),
-            fullAddress: acc.address,
-            volume: acc.volumeUsd,
-            level: acc.level,
-            _size: getNodeSize(acc.volumeUsd),
-            _color: nodeColors[String(acc.level)] ?? nodeColors.default,
-          },
-        });
-      });
-
-      // 2. edges (only inside same cluster already)
-      c.accountLinks.forEach((l) => {
-        elems.push({
-          group: 'edges',
-          data: {
-            id: `${l.source}-${l.target}`,
-            source: l.source,
-            target: l.target,
-            volume: l.volumeUsd ?? 0,
-            _size: getEdgeSize(l.volumeUsd ?? 0),
-            _opacity: getEdgeOpacity(l.volumeUsd ?? 0),
-          },
-        });
-      });
-    });
-
-    return elems;
-  }, [clusters]);
-
-  /* ───────────────── draw / redraw ───────────────── */
-  const drawGraph = () => {
-    if (!graphRef.current) return;
-
-    const cy = cytoscape({
-      container: graphRef.current,
-      elements: cyElements,
-      minZoom: 0.2,
-      maxZoom: 2,
-      style: [
-        {
-          selector: 'node',
-          style: {
-            label: 'data(label)',
-            'background-color': 'data(_color)',
-            'text-outline-width': 1,
-            'text-outline-color': '#000',
-            color: '#fff',
-            width: 'data(_size)',
-            height: 'data(_size)',
-            'font-size': 20,
-            'font-weight': 'bold',
-            'text-halign': 'center',
-            'text-valign': 'center',
-          },
-        },
-        {
-          selector: 'edge',
-          style: {
-            'line-color': '#949494',
-            'line-opacity': 'data(_opacity)',
-            width: 'data(_size)',
-          },
-        },
-      ],
-    });
-
-    /* 1️⃣  run fcose once per cluster to keep them separated */
-    clusters.forEach((c) => {
-      const sub = cy.elements(`[cluster = "c${c.id}"]`);
-      sub.layout({
-        name: 'fcose',
-        randomize: true,
-        animationDuration: 800,
-        fit: false,
-        nodeRepulsion: (n) => 20000 + (n.data('volume') ?? 0) * 0.2,
-        gravity: 0.2,
-      }).run();
-    });
-
-    /* 2️⃣  spread whole clusters apart on an x‑axis */
-    const gap = 600;                         // pixels between clusters
-    clusters.forEach((c, i) => {
-      const sub = cy.elements(`[cluster = "c${c.id}"]`);
-      const shiftX = i * gap;
-      sub.positions((node) => {
-        const pos = node.position();
-        return { x: pos.x + shiftX, y: pos.y };
-      });
-    });
-
-    cy.center();    // bring everything into view
-    cy.zoom(1);
-
-    /* ───── tooltip handlers ───── */
-    const dpr = window.devicePixelRatio || 1;
-
-    cy.on('mouseover', 'node', (e) => {
-      const node = e.target;
-      const pos = node.renderedPosition();
-      const rect = graphRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      setTooltip({
-        x: rect.left + pos.x / dpr + 2,
-        y: rect.top + pos.y / dpr + 2,
-        visible: true,
-        address: node.data('fullAddress'),
-        volume: '$' + (node.data('volume') ?? 0).toLocaleString(),
-      });
-    });
-
-    cy.on('mouseout', 'node', () =>
-      setTooltip((prev) => ({ ...prev, visible: false })),
-    );
-
-    cy.on('tap', (e) => {
-      if (e.target === cy)
-        setTooltip((prev) => ({ ...prev, visible: false }));
-    });
-  };
-
-  /* ───────────────── effects ───────────────── */
-  useEffect(drawGraph, [cyElements]);
-  useEffect(() => {
-    window.addEventListener('resize', drawGraph);
-    return () => window.removeEventListener('resize', drawGraph);
-  }, [cyElements]);
-
-  /* ───────────────── render ───────────────── */
-  return (
-    <>
-      <div ref={graphRef} className="w-full aspect-[2/1]" />
-
-      {tooltip.visible && (
-        <div
-          style={{
-            position: 'absolute',
-            left: tooltip.x,
-            top: tooltip.y,
-            pointerEvents: 'none',
-            background: 'rgba(0,0,0,0.8)',
-            color: '#fff',
-            padding: '6px 8px',
-            borderRadius: 4,
-            fontSize: '0.85rem',
-            whiteSpace: 'nowrap',
-            zIndex: 1000,
-          }}
-        >
-          <div>
-            <strong>Address:</strong> {tooltip.address}
-          </div>
-          <div>
-            <strong>Volume:</strong> {tooltip.volume}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-export default function AccountsTableForToken({
-  cluster,
-}: {
-  cluster: {
-    accounts: Array<{
-      address: string;
-      level: number;
-      volumeUsd: number;
-      tokenBalance: number;
-      supplyPct: number; // already rounded to 2 dp in buildClusters
-    }>;
-  };
-}) {
-  const router = useRouter();
-  const rows = useMemo(
-    () =>
-      [...cluster.accounts].sort((a, b) => {
-        if (a.level === 0 && b.level !== 0) return -1;
-        if (b.level === 0 && a.level !== 0) return 1;
-        return b.volumeUsd - a.volumeUsd;
-      }),
-    [cluster.accounts]
-  );
-
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Address</TableHead>
-          <TableHead>Volume</TableHead>
-          <TableHead>Balance</TableHead>
-          <TableHead className="text-right">Supply&nbsp;%</TableHead>
-        </TableRow>
-      </TableHeader>
-
-      <TableBody>
-        {rows.map((a) => (
-          <TableRow
-            key={a.address}
-            className={`cursor-pointer ${
-              a.level === 0 ? 'bg-muted/50 font-semibold' : ''
-            }`}
-            onClick={() => router.push(`/acc/${a.address}`)}
-          >
-            {[
-              /* address cell ------------------------------------------------ */
-              <TableCell key="addr" className="flex items-center gap-2">
-                {abbreviateAddress(a.address)}
-                {a.level === 0 && (
-                  <div className="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
-                    token&nbsp;holder
-                  </div>
-                )}
-                <Button
-                  variant="link"
-                  className="size-5"
-                  onClick={(e) => handleCopy(e, a.address)}
-                >
-                  <Copy />
-                </Button>
-              </TableCell>,
-
-              /* volume cell ------------------------------------------------- */
-              <TableCell key="vol">${abbreviateNumber(a.volumeUsd)}</TableCell>,
-
-              /* balance cell ------------------------------------------------ */
-              <TableCell key="bal">{abbreviateNumber(a.tokenBalance)}</TableCell>,
-
-              /* percentage cell -------------------------------------------- */
-              <TableCell key="pct" className="text-right">
-                {a.supplyPct.toFixed(2)}%
-              </TableCell>,
-            ]}
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
-
-
-export function ClusterAssociatedAccountsForToken({
-  clusters,
-  className,
-}: {
-  clusters: Array<{
-    id: number;
-    accounts: any[];
-    accountLinks: { source: string; target: string }[];
-    totalVol: number;
-    totalPct: number;
-  }>;
-  className?: string;
-}) {
-  const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
-
-  return (
-    <Card className={className}>
-      <CardHeader>
-        <div className="flex justify-between">
-          <CardTitle>Associated accounts</CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === 'graph' ? 'default' : 'outline'}
-              onClick={() => setViewMode('graph')}
-              size="icon"
-            >
-              <Network />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              onClick={() => setViewMode('list')}
-              size="icon"
-            >
-              <List />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="grid gap-4">
-        {viewMode === 'list' ? (
-          clusters.map((cluster) => (
-            <div key={cluster.id} className="space-y-2 flex-nowrap overflow-x-scroll">
-              <h4 className="font-semibold tracking-tight">
-                Cluster&nbsp;{cluster.id}&nbsp;
-                <span className="text-muted-foreground text-sm font-normal">
-                  &nbsp;•&nbsp;Total&nbsp;Ownership:&nbsp;
-                  {cluster.totalPct.toFixed(2)}%
-                </span>
-                <span className="text-muted-foreground text-sm font-normal">
-                  &nbsp;•&nbsp;Total&nbsp;Volume:&nbsp;$
-                  {abbreviateNumber(cluster.totalVol)}
-                </span>
-              </h4>
-
-              {/* table now needs only the cluster */}
-              <AccountsTableForToken cluster={cluster} />
-            </div>
-          ))
-        ) : (
-          /* graph can receive the whole cluster array */
-          <AccountsGraphForToken clusters={clusters} />
-        )}
-      </CardContent>
-    </Card>
-  );
 }
