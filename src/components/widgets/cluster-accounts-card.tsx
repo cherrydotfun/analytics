@@ -120,84 +120,112 @@ function beamPositions(
   accounts: { address: string; level: number }[],
   links: { source: string; target: string }[],
 ) {
-  /* tweakables -------------------------------------------------- */
-  const ROOT_RING  = 600; // distance between roots if >1 root
-  const BASE_R1    = 600; // level-1 radius  (single-root case)
-  const STEP       = 500; // extra per depth
-  const GAP        = 0.5; // radians gap between sibling wedges
-  /* ------------------------------------------------------------- */
+  /* knobs ------------------------------------------------------ */
+  const ROOT_RING   = 800;   // radius for each level-0 wallet (multi-root)
+  const BASE_R1     = 1200;  // radius for level-1 when only one root
+  const STEP        = 800;   // extra radius per depth
+  const ROOT_GAP    = 0.3;   // rad gap between roots (multi-root)
+  const FAN         = 0.25;  // ± rad max fan of children around parent
+  const RAD_JITTER  = 100;   // ± px radial wiggle (keeps depth order)
+  /* ------------------------------------------------------------ */
 
-  /* build undirected adjacency --------------------------------- */
+  /* adjacency -------------------------------------------------- */
   const adj = new Map<string, string[]>();
   links.forEach(({ source, target }) => {
     adj.set(source, [...(adj.get(source) || []), target]);
     adj.set(target, [...(adj.get(target) || []), source]);
   });
 
-  /* buckets by level */
+  /* bucket addresses by BFS level ----------------------------- */
   const buckets: Record<number, string[]> = {};
   accounts.forEach((a) => ((buckets[a.level] ||= []).push(a.address)));
 
-  const roots = buckets[0] ?? [];
+  /* level map for O(1) lookup */
+  const levelOf = new Map(accounts.map((a) => [a.address, a.level]));
+
+  const roots   = buckets[0] ?? [];
   const pos: Record<string, { x: number; y: number }> = {};
   const visited = new Set<string>();
 
-  /* ---------- SINGLE-ROOT CASE -------------------------------- */
+  /* ============================================================ *
+   *  SINGLE ROOT – children spread on full 360°                  *
+   * ============================================================ */
   if (roots.length <= 1) {
     const root = roots[0];
     if (!root) return pos;
+
     pos[root] = { x: 0, y: 0 };
     visited.add(root);
 
-    layoutSubtree(root, 0, 2 * Math.PI, 1);
+    const first = buckets[1] || [];
+    const stepA = (2 * Math.PI) / Math.max(first.length, 1);
+
+    first.forEach((child, idx) => {
+      const ang = idx * stepA;
+      const r   = BASE_R1 + jitter();
+      pos[child] = { x: r * Math.cos(ang), y: r * Math.sin(ang) };
+      visited.add(child);
+      layoutDescendants(child, ang, r + STEP, FAN);
+    });
+
     return pos;
   }
 
-  /* ---------- MULTI-ROOT CASE --------------------------------- */
-  const slice = (2 * Math.PI) / roots.length;
+  /* ============================================================ *
+   *  MULTI ROOT – each root on ROOT_RING, gets a wedge           *
+   * ============================================================ */
+  const rootSlice = (2 * Math.PI) / roots.length;
 
   roots.forEach((addr, idx) => {
-    const a0   = idx * slice + GAP / 2;
-    const a1   = (idx + 1) * slice - GAP / 2;
-    const mid  = (a0 + a1) / 2;
-
-    /* place root on ROOT_RING */
-    pos[addr] = { x: ROOT_RING * Math.cos(mid), y: ROOT_RING * Math.sin(mid) };
+    const angRoot = idx * rootSlice;
+    const rRoot   = ROOT_RING + jitter();
+    pos[addr] = { x: rRoot * Math.cos(angRoot), y: rRoot * Math.sin(angRoot) };
     visited.add(addr);
 
-    layoutSubtree(addr, a0, a1, 1);
+    /* limit children fan to half slice minus ROOT_GAP */
+    const fan = rootSlice / 2 - ROOT_GAP;
+    layoutDescendants(addr, angRoot, ROOT_RING + STEP, fan);
   });
 
   return pos;
 
-  /* ------------------------------------------------------------ */
-  function layoutSubtree(
-    node: string,
-    angStart: number,
-    angEnd: number,
-    depth: number,
+  /* ------------------------------------------------------------ *
+   *  Recursive layout for deeper levels                          *
+   * ------------------------------------------------------------ */
+  function layoutDescendants(
+    parent: string,
+    parentAng: number,
+    ringRadius: number,
+    fan: number,
   ) {
-    /* level of children = depth in this recursive frame */
-    const kids = (adj.get(node) || []).filter(
-      (n) =>
-        !visited.has(n) && (buckets[depth] || []).includes(n),
+    const parentLvl = (levelOf.get(parent) ?? 0) + 1;
+
+    const kids = (adj.get(parent) || []).filter(
+      (n) => !visited.has(n) && levelOf.get(n) === parentLvl,
     );
     if (!kids.length) return;
 
-    const span   = angEnd - angStart;
-    const sector = (span - GAP * (kids.length - 1)) / kids.length;
+    /** spread kids across [-fan, +fan] around parent angle */
+    kids.forEach((child, idx) => {
+      const offset =
+        kids.length === 1
+          ? 0
+          : ((idx - (kids.length - 1) / 2) / ((kids.length - 1) / 2)) *
+            fan;
 
-    kids.forEach((child, i) => {
-      const s   = angStart + i * (sector + GAP);
-      const e   = s + sector;
-      const ang = (s + e) / 2;
-      const base = roots.length === 1 ? BASE_R1 : ROOT_RING + STEP; // level-1 radius
-      const r   = base + STEP * (depth - 1) + i * 45 + Math.floor(Math.random() * 1000); 
+      const ang = parentAng + offset;
+      const r   = ringRadius + jitter();              // always > parent r
 
       pos[child] = { x: r * Math.cos(ang), y: r * Math.sin(ang) };
       visited.add(child);
-      layoutSubtree(child, s, e, depth + 1);
+
+      /* grandchildren ring = current ring + STEP */
+      layoutDescendants(child, ang, ringRadius + STEP, fan * 0.6);
     });
+  }
+
+  function jitter() {
+    return (Math.random() * 2 - 1) * RAD_JITTER;
   }
 }
 
@@ -264,8 +292,7 @@ export function AccountsGraph({ accounts, accountLinks }: Props) {
           selector: 'edge',
           style: {
             'line-color': '#949494',
-            // 'line-opacity': 'data(_opacity)',
-            'line-opacity': 0.4,
+            'line-opacity': '0.3',
             width: 'data(_size)',
           },
         },
@@ -282,20 +309,10 @@ export function AccountsGraph({ accounts, accountLinks }: Props) {
       padding: 60,
       animate: true,
       animationDuration: 600,
+      gravity: 0.5,
+      gravityRange: 5,
+      nodeRepulsion: (node) => 25000 + (node.data('volume') ?? 0) * 0.2
     }).run();
-
-    cy.layout({
-      name: 'fcose',
-      randomize: false,     // start from current coordinates
-      fit: false,
-      nodeRepulsion: 35000,  // stronger push-apart
-      idealEdgeLength: 200,  // keep parent–child somewhat tight
-      edgeElasticity: 0.2,
-      gravity: 0.3,         // mild inward pull so beams stay radially aligned
-      gravityRange: 2.5,
-      componentSpacing: 0,  // we’re only nudging inside each cluster
-      animate: false,       // instant calc; we’ll animate grid shift later
-      }).run();
 
     /* tooltips */
     const dpr = window.devicePixelRatio || 1;

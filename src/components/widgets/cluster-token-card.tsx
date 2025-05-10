@@ -35,12 +35,12 @@ import { handleCopy } from "@/lib/utils/copy-to-clipboard";
 // TODO: add these into a separate file
 // Define 7 "bins" for node sizes
 function getNodeSize(volume: number) {
-  if (volume < 10) return 10*1.25
-  if (volume < 100) return 20*1.25
-  if (volume < 1000) return 30*1.25
-  if (volume < 10_000) return 50*1.25
-  if (volume < 100_000) return 80*1.25
-  if (volume < 1_000_000) return 130*1.25
+  if (volume < 10) return 10*1.4
+  if (volume < 100) return 20*1.4
+  if (volume < 1000) return 30*1.4
+  if (volume < 10_000) return 50*1.33
+  if (volume < 100_000) return 80*1.33
+  if (volume < 1_000_000) return 130*1.33
   return 10*1.25
 }
 
@@ -92,9 +92,9 @@ function multiRootBeamPositions(
   accounts: { address: string; level: number }[],
   links: { source: string; target: string }[],
 ) {
-  const ROOT_RING = 400;  // distance of level-0 nodes from cluster centre
-  const STEP      = 400;  // extra radius per depth
-  const GAP       = 0.5; // radian gap between sibling wedges
+  const ROOT_RING = 500;  // distance of level-0 nodes from cluster centre
+  const STEP      = 500;  // extra radius per depth
+  const GAP       = 0.12; // radian gap between sibling wedges
 
   /* undirected adjacency */
   const adj = new Map<string, string[]>();
@@ -334,6 +334,11 @@ export function AccountsGraphForToken({
       positions: (n) => presetPos[n.id()] || { x: 0, y: 0 },
       fit: false,
       animate: false,
+      nodeRepulsion: 30000,
+      idealEdgeLength: 400,
+      gravity: 0.5,
+      gravityRange: 5,
+      nodeRepulsion: (node) => 25000 + (node.data('volume') ?? 0) * 0.2
     }).run();
 
     /* tool-tips -------------------------------------------------- */
