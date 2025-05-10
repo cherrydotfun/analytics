@@ -29,17 +29,18 @@ import {
   } from "@/components/ui/table"
 import { abbreviateNumber, formatGainLoss } from "@/lib/formatting"
 
+import { toast } from "sonner"
 import { handleCopy } from "@/lib/utils/copy-to-clipboard";
 
 // Define 7 "bins" for node sizes
 function getNodeSize(volume: number) {
-  if (volume < 10) return 10*1.5
-  if (volume < 100) return 20*1.5
-  if (volume < 1000) return 30*1.5
-  if (volume < 10_000) return 50*1.5
-  if (volume < 100_000) return 80*1.5
-  if (volume < 1_000_000) return 130*1.5
-  return 10*1.5
+  if (volume < 10) return 10
+  if (volume < 100) return 20
+  if (volume < 1000) return 30
+  if (volume < 10_000) return 50
+  if (volume < 100_000) return 80
+  if (volume < 1_000_000) return 130
+  return 10
 }
 
 // Define 7 "bins" for edge sizes
@@ -69,17 +70,17 @@ function getEdgeOpacity(volume: number) {
 }
 
 const nodeColors = {
-  /* level-0  ─ darkest: black-cherry / merlot */
-  "0": "#4B0000",   // almost-black cherry
+  /* level-0 – rich cherry red (deeper & less orange) */
+  "0": "#C21807",   // deep bing-cherry
 
-  /* level-1  ─ deep, saturated cherry red */
-  "1": "#B00020",   // vivid crimson
+  /* level-1 – bright orange */
+  "1": "#FFA500",
 
-  /* level-2  ─ bright glazed-cherry tint */
-  "2": "#FF5252",   // light scarlet
+  /* level-2 – vivid green */
+  "2": "#00D443",
 
-  /* deeper   ─ very pale cherry-blossom wash */
-  "default": "#FFE8E8", // near-white pink
+  /* deeper levels */
+  "default": "#FFFFFF",
 };
 
 function AccountsTable({accounts}: {accounts: any[]}) {
@@ -113,163 +114,59 @@ function AccountsTable({accounts}: {accounts: any[]}) {
     )
 }
 
-/* ------------------------------------------------------------------ *
- *  deterministic "beam" positions                                      *
- * ------------------------------------------------------------------ */
-function beamPositions(
-  accounts: { address: string; level: number }[],
-  links: { source: string; target: string }[],
-) {
-  /* knobs ------------------------------------------------------ */
-  const ROOT_RING   = 800;   // radius for each level-0 wallet (multi-root)
-  const BASE_R1     = 1200;  // radius for level-1 when only one root
-  const STEP        = 800;   // extra radius per depth
-  const ROOT_GAP    = 0.3;   // rad gap between roots (multi-root)
-  const FAN         = 0.25;  // ± rad max fan of children around parent
-  const RAD_JITTER  = 100;   // ± px radial wiggle (keeps depth order)
-  /* ------------------------------------------------------------ */
-
-  /* adjacency -------------------------------------------------- */
-  const adj = new Map<string, string[]>();
-  links.forEach(({ source, target }) => {
-    adj.set(source, [...(adj.get(source) || []), target]);
-    adj.set(target, [...(adj.get(target) || []), source]);
-  });
-
-  /* bucket addresses by BFS level ----------------------------- */
-  const buckets: Record<number, string[]> = {};
-  accounts.forEach((a) => ((buckets[a.level] ||= []).push(a.address)));
-
-  /* level map for O(1) lookup */
-  const levelOf = new Map(accounts.map((a) => [a.address, a.level]));
-
-  const roots   = buckets[0] ?? [];
-  const pos: Record<string, { x: number; y: number }> = {};
-  const visited = new Set<string>();
-
-  /* ============================================================ *
-   *  SINGLE ROOT – children spread on full 360°                  *
-   * ============================================================ */
-  if (roots.length <= 1) {
-    const root = roots[0];
-    if (!root) return pos;
-
-    pos[root] = { x: 0, y: 0 };
-    visited.add(root);
-
-    const first = buckets[1] || [];
-    const stepA = (2 * Math.PI) / Math.max(first.length, 1);
-
-    first.forEach((child, idx) => {
-      const ang = idx * stepA;
-      const r   = BASE_R1 + jitter();
-      pos[child] = { x: r * Math.cos(ang), y: r * Math.sin(ang) };
-      visited.add(child);
-      layoutDescendants(child, ang, r + STEP, FAN);
-    });
-
-    return pos;
-  }
-
-  /* ============================================================ *
-   *  MULTI ROOT – each root on ROOT_RING, gets a wedge           *
-   * ============================================================ */
-  const rootSlice = (2 * Math.PI) / roots.length;
-
-  roots.forEach((addr, idx) => {
-    const angRoot = idx * rootSlice;
-    const rRoot   = ROOT_RING + jitter();
-    pos[addr] = { x: rRoot * Math.cos(angRoot), y: rRoot * Math.sin(angRoot) };
-    visited.add(addr);
-
-    /* limit children fan to half slice minus ROOT_GAP */
-    const fan = rootSlice / 2 - ROOT_GAP;
-    layoutDescendants(addr, angRoot, ROOT_RING + STEP, fan);
-  });
-
-  return pos;
-
-  /* ------------------------------------------------------------ *
-   *  Recursive layout for deeper levels                          *
-   * ------------------------------------------------------------ */
-  function layoutDescendants(
-    parent: string,
-    parentAng: number,
-    ringRadius: number,
-    fan: number,
-  ) {
-    const parentLvl = (levelOf.get(parent) ?? 0) + 1;
-
-    const kids = (adj.get(parent) || []).filter(
-      (n) => !visited.has(n) && levelOf.get(n) === parentLvl,
-    );
-    if (!kids.length) return;
-
-    /** spread kids across [-fan, +fan] around parent angle */
-    kids.forEach((child, idx) => {
-      const offset =
-        kids.length === 1
-          ? 0
-          : ((idx - (kids.length - 1) / 2) / ((kids.length - 1) / 2)) *
-            fan;
-
-      const ang = parentAng + offset;
-      const r   = ringRadius + jitter();              // always > parent r
-
-      pos[child] = { x: r * Math.cos(ang), y: r * Math.sin(ang) };
-      visited.add(child);
-
-      /* grandchildren ring = current ring + STEP */
-      layoutDescendants(child, ang, ringRadius + STEP, fan * 0.6);
-    });
-  }
-
-  function jitter() {
-    return (Math.random() * 2 - 1) * RAD_JITTER;
-  }
-}
 
 export function AccountsGraph({ accounts, accountLinks }: Props) {
-  const graphRef = useRef<HTMLDivElement>(null);
-  const [tooltip, setTooltip] = useState({
+  const graphRef = useRef<HTMLDivElement>(null)
+
+  // Tooltip state: (x, y) coords + info to display
+  const [tooltip, setTooltip] = useState<{
+    x: number
+    y: number
+    visible: boolean
+    address: string
+    volume: any
+  }>({
     x: 0,
     y: 0,
     visible: false,
     address: '',
-    volume: '',
-  });
+    volume: 0,
+  })
 
-  /* Cytoscape draw */
-  const draw = () => {
-    if (!graphRef.current) return;
+  // Convert accounts to Cytoscape nodes
+  const nodes = accounts.map(account => ({
+    data: {
+      id: account.address,
+      label: abbreviateAddress(account.address),
+      fullAddress: account.address,  // for tooltip
+      volume: account.volumeUsd,
+      level: account.level,
+      _size: getNodeSize(account.volumeUsd),
+      _color: nodeColors[String(account.level)] ?? nodeColors.default,
+    }
+  }))
 
-    const nodes = accounts.map((a) => ({
-      data: {
-        id: a.address,
-        label: abbreviateAddress(a.address),
-        fullAddress: a.address,
-        volume: a.volumeUsd,
-        level: a.level,
-        _size: getNodeSize(a.volumeUsd),
-        _color: nodeColors[String(a.level)] ?? nodeColors.default,
-      },
-    }));
+  // Convert links to Cytoscape edges
+  const edges = accountLinks.map(link => ({
+    data: {
+      id: `${link.source}-${link.target}`,
+      source: link.source,
+      target: link.target,
+      volume: link.volumeUsd,
+      _size: getEdgeSize(link.volumeUsd),
+      _opacity: getEdgeOpacity(link.volumeUsd),
+    }
+  }))
 
-    const edges = accountLinks.map((l) => ({
-      data: {
-        id: `${l.source}-${l.target}`,
-        source: l.source,
-        target: l.target,
-        volume: l.volumeUsd,
-        _size: getEdgeSize(l.volumeUsd),
-        _opacity: getEdgeOpacity(l.volumeUsd),
-      },
-    }));
+  const drawGraph = () => {
+    if (!graphRef.current) return
 
     const cy = cytoscape({
       container: graphRef.current,
       elements: [...nodes, ...edges],
-      minZoom: 0.1,
+      zoom: 1,
+      // limit how far in/out users can zoom
+      minZoom: 0.2,
       maxZoom: 2,
       style: [
         {
@@ -277,6 +174,7 @@ export function AccountsGraph({ accounts, accountLinks }: Props) {
           style: {
             label: 'data(label)',
             'background-color': 'data(_color)',
+            // Outline for label contrast
             'text-outline-width': 1,
             'text-outline-color': '#000',
             color: '#fff',
@@ -286,7 +184,7 @@ export function AccountsGraph({ accounts, accountLinks }: Props) {
             'font-weight': 'bold',
             'text-halign': 'center',
             'text-valign': 'center',
-          },
+          }
         },
         {
           selector: 'edge',
@@ -294,85 +192,134 @@ export function AccountsGraph({ accounts, accountLinks }: Props) {
             'line-color': '#949494',
             'line-opacity': '0.3',
             width: 'data(_size)',
-          },
-        },
-      ],
-    });
+          }
+        }
+      ]
+    })
 
-    /* radial beam preset */
-    const preset = beamPositions(accounts, accountLinks);
-
+    // Use a force-based layout (fcose) for better distribution
     cy.layout({
-      name: 'preset',
-      positions: (n) => preset[n.id()] || { x: 0, y: 0 },
-      fit: true,
-      padding: 60,
+      name: 'fcose',
+      // Scale repulsion by volume
+      nodeRepulsion: (node) => 20000 + (node.data('volume') ?? 0) * 0.2,
+      idealEdgeLength: 150,
+      nodeSeparation: 150,
+      gravity: 0.2,
+      gravityRange: 2.0,
+      packComponents: true,
+      randomize: true,
       animate: true,
-      animationDuration: 600,
-      gravity: 0.5,
-      gravityRange: 5,
-      nodeRepulsion: (node) => 25000 + (node.data('volume') ?? 0) * 0.2
-    }).run();
+      animationDuration: 3500,
+      animationEasing: 'ease-out-cubic'
+    }).run()
 
-    /* tooltips */
-    const dpr = window.devicePixelRatio || 1;
-    cy.on('mouseover', 'node', (e) => {
-      const n = e.target;
-      const p = n.renderedPosition();
-      const rect = graphRef.current?.getBoundingClientRect();
-      if (!rect) return;
+    // Device pixel ratio for hiDPI screens
+    const dpr = window.devicePixelRatio || 1
+
+    // ---------------------------
+    // MOUSE/EVENT HANDLERS
+    // ---------------------------
+    // 1. Show tooltip on hover
+    // Show tooltip on node hover
+    cy.on('mouseover', 'node', (event) => {
+      const node = event.target
+      const pos = node.renderedPosition()
+
+      // Distance from top-left of page for the container
+      const rect = graphRef.current?.getBoundingClientRect()
+      if (!rect) return
+
+      // Convert Cytoscape rendered coords to page coords
+      // Often dividing by dpr helps correct for retina/zoom mismatch
+      const x = rect.left + pos.x / dpr
+      const y = rect.top + pos.y / dpr
+
       setTooltip({
-        x: rect.left + p.x / dpr + 2,
-        y: rect.top + p.y / dpr + 2,
+        x,
+        y,
         visible: true,
-        address: n.data('fullAddress'),
-        volume: '$' + (n.data('volume') ?? 0).toLocaleString(),
-      });
-    });
-    cy.on('mouseout', 'node', () =>
-      setTooltip((prev) => ({ ...prev, visible: false })),
-    );
-    cy.on('tap', (e) => {
-      if (e.target === cy)
-        setTooltip((prev) => ({ ...prev, visible: false }));
-    });
-  };
+        address: node.data('fullAddress'),
+        volume: '$' + parseFloat(parseFloat(node.data('volume')).toFixed(2)),
+      })
+    })
 
-  useEffect(draw, [accounts, accountLinks]);
+    // Hide tooltip on mouse out
+    cy.on('mouseout', 'node', () => {
+      setTooltip((prev) => ({ ...prev, visible: false }))
+    })
+
+    // Show tooltip on tap/click (if you like)
+    cy.on('tap', 'node', (event) => {
+      const node = event.target
+      const pos = node.renderedPosition()
+      const rect = graphRef.current?.getBoundingClientRect()
+      if (!rect) return
+
+      const x = rect.left + pos.x / dpr
+      const y = rect.top + pos.y / dpr
+
+      setTooltip({
+        x,
+        y,
+        visible: true,
+        address: node.data('fullAddress'),
+        volume: '$' + parseFloat(parseFloat(node.data('volume')).toFixed(2)),
+      })
+    })
+
+    // Hide tooltip if user taps the empty space
+    cy.on('tap', (event) => {
+      if (event.target === cy) {
+        setTooltip((prev) => ({ ...prev, visible: false }))
+      }
+    })
+
+    // Optionally disable user panning/zooming if you want a fixed layout
+    // cy.panningEnabled(false)
+    // cy.userZoomingEnabled(false)
+    cy.center();
+    cy.zoom(1);
+  }
+
+  // Draw graph whenever accounts or accountLinks changes
   useEffect(() => {
-    window.addEventListener('resize', draw);
-    return () => window.removeEventListener('resize', draw);
-  }, [accounts, accountLinks]);
+    drawGraph()
+  }, [accounts, accountLinks])
+
+  // Redraw on window resize
+  useEffect(() => {
+    window.addEventListener('resize', drawGraph)
+    return () => window.removeEventListener('resize', drawGraph)
+  }, [])
 
   return (
     <>
+      {/* Container that Cytoscape uses */}
       <div ref={graphRef} className="w-full aspect-[2/1]" />
+
+      {/* A simple absolutely-positioned tooltip */}
       {tooltip.visible && (
         <div
           style={{
             position: 'absolute',
-            left: tooltip.x,
-            top: tooltip.y,
+            left: tooltip.x + 2, // offset a bit so the tooltip doesn't overlap the cursor
+            top: tooltip.y + 2,
             pointerEvents: 'none',
-            background: 'rgba(0,0,0,0.8)',
+            background: 'rgba(0, 0, 0, 0.8)',
             color: '#fff',
             padding: '6px 8px',
-            borderRadius: 4,
+            borderRadius: '4px',
             fontSize: '0.85rem',
             whiteSpace: 'nowrap',
             zIndex: 1000,
           }}
         >
-          <div>
-            <strong>Address:</strong> {tooltip.address}
-          </div>
-          <div>
-            <strong>Volume:</strong> {tooltip.volume}
-          </div>
+          <div><strong>Address:</strong> {tooltip.address}</div>
+          <div><strong>Volume:</strong> {tooltip.volume}</div>
         </div>
       )}
     </>
-  );
+  )
 }
 
 export function ClusterAssociatedAccounts({
