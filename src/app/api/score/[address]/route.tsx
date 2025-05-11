@@ -74,7 +74,7 @@ export async function GET(
     /* 1) who are the whales?                             */
     /* -------------------------------------------------- */
     const { tokenName, tokenSymbol, topHolders, tokenSupply } = await getTopTokenHolders(tokenAddress);
-    const slice = topHolders.slice(0, 10);
+    const slice = topHolders.slice(0, 20);
 
     /* -------------------------------------------------- */
     /* 2) crunch each holder in parallel                  */
