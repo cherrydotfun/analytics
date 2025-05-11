@@ -73,6 +73,8 @@ import { abbreviateAddress } from '@/lib/formatting';
 import type { IHoldingsDetailed, IWalletMetrics } from '@/types/wallet';
 import { Big } from 'big.js';
 
+const KB_IP = process.env.CHERRY_KB;
+
 export async function GET(
   _req: Request,
   { params }: { params: { address: string } }
@@ -191,6 +193,25 @@ export async function GET(
     /* -------------------------------------------------- */
     /* 4) respond                                         */
     /* -------------------------------------------------- */
+    const aiRes = await fetch(`${KB_IP}/getAiSummary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            solAddress: tokenAddress,
+            riskSummary: {
+              token:          { name: tokenName, symbol: tokenSymbol, address: tokenAddress },
+              holdersAnalysed: perHolder.length,
+              tokenSummary:    { probDump1h, sharkShare, richness },
+              holders:         perHolder,
+            },
+          }),
+      });
+    console.log(aiRes);
+    const { summary: aiSummary } = aiRes.ok ? await aiRes.json() : { summary: null };
+
+    /* -------------------------------------------------- */
+    /* 5) respond                                         */
+    /* -------------------------------------------------- */
     return NextResponse.json({
       token: { name: tokenName, symbol: tokenSymbol, address: tokenAddress },
       holdersAnalysed: perHolder.length,
@@ -199,6 +220,7 @@ export async function GET(
         sharkShare,   // 0-1
         richness,     // median cash / pos
       },
+      aiSummary,
       holders: perHolder,
     });
   } catch (error) {

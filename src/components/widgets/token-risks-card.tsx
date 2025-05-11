@@ -7,25 +7,6 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-  } from "@/components/ui/tooltip"
-
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
-
-import { abbreviateNumber, formatGainLoss } from "@/lib/formatting"
-
 export function TokenRisksCard({
     risks, ...props
   }: {
@@ -33,21 +14,27 @@ export function TokenRisksCard({
   }) {
 
     return (
-    <Card className={"w-full h-full"} {...props}>
+      <Card {...props} className="w-full h-full flex flex-col">
         <CardHeader>
-            <CardTitle>Risks</CardTitle>
+          <CardTitle>AI Risk Summary</CardTitle>
+          <CardDescription>
+            Automated insights from Cherry Fun LLM
+          </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4">
-        <Table>
-      <TableBody>
-        {risks?.map((risk) => (
-          <TableRow key={risk.name}>
-            <TableCell>{risk.name}</TableCell>
-          </TableRow>
-        )) || "No known risks"}
-      </TableBody>
-    </Table>
+
+        <CardContent className="flex-1 overflow-auto">
+          {risks && risks.length > 0 ? (
+            <ul className="list-disc list-inside space-y-2 text-sm">
+              {risks.map((line, idx) => (
+                <li key={idx} className="leading-relaxed">
+                  {line.name}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground">No summary available.</p>
+          )}
         </CardContent>
-    </Card>
+      </Card>
     )
 }

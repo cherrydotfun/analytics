@@ -97,6 +97,21 @@ export default function Page() {
     };
   }, [address]);
 
+  // 1) grab the rug‐check risks (defaulting to [])
+  const rugRisks: { name: string; level: string }[] = data?.rugCheckInfo?.risks ?? [];
+
+  // 2) grab the AI “cons” bullets (defaulting to [])
+  const aiCons: string[] = data?.riskInfo?.aiSummary?.cons ?? [];
+
+  // 3) turn those strings into risk objects
+  const aiRisks = aiCons.map((text) => ({
+    name: text,
+    level: "",     // you can fill in a severity if you like
+  }));
+
+  // 4) combine them
+  const combinedRisks = [...rugRisks, ...aiRisks];
+
   // Auto-scroll logs to bottom whenever new lines are added
   useEffect(() => {
     if (logsRef.current) {
@@ -176,7 +191,7 @@ export default function Page() {
                       ddXyzScore={data?.ddXyzInfo?.overallRisk || null}
                       cherryDumpRisk={data?.riskInfo?.tokenSummary?.probDump1h ?? null} />
                   </div>
-                  <TokenRisksCard risks={data?.rugCheckInfo?.risks || null } />
+                  <TokenRisksCard risks={combinedRisks} />
                   {/* <ClusterPnlCard pnlPerc={data.financials.pnlPerc} pnlUsd={data.financials.pnlUsd} unrealizedPnlUsd={data.financials.unrealizedPnlUsd} /> */}
                   {/* <ClusterAchievements achievements={data.achievements} className="lg:w-2/3 flex" /> */}
                 </div>

@@ -17,7 +17,7 @@ export async function GET(
     ]);
 
     const riskInfo = await fetch(
-        new URL(`/api/score/${address}`, process.env.NEXT_PUBLIC_BASE_URL),
+        new URL(`/api/score/${address}`, process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'),
         { cache: 'no-store' }           // don’t serve a stale copy
       ).then(r => r.ok ? r.json() : null);
   
