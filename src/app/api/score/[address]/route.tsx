@@ -42,12 +42,14 @@
  *               ▸ 0.6-0.8 Profit-taking likely  
  *               ▸ >0.8   Exit-liquidity hunter
  *
- * sizeX         USD the wallet originally spent on this token
- * pnlX          current unrealised ROI (e.g. 0.58 = +58 %)
+ * sizeX         USD the wallet originally spent on this token (sizeX = 0 means the endpoint never saw a buy; could be an AMM LP address or internal bridge—treat with caution)
+ * uPnlX         current unrealised ROI (e.g. 0.58 = +58 %)
+ * rPnlX         current realised ROI
  * holdHours     hours since first buy of this token
  * cashUSD       SOL + stable balance still sitting idle in wallet
  * basePF        wallet’s historical **Profit Factor** for *other* coins  
  *               (<1 = serial loser, >1.5 = shark, null = new wallet)
+ * isFresh       a new wallet without much history
  *
  **/
 
@@ -84,6 +86,10 @@ export async function GET(
           const pnlRaw   = await getPnL(h.address.address);
           const holdings = pnlRaw as IHoldingsDetailed[];
 
+          /* detect “fresh” wallet ( <3 distinct tokens ) */
+          const uniqueTokens = new Set(holdings.map((o) => o.token.address));
+          const isFresh = uniqueTokens.size < 3;
+
           /* ---------- b. split X-token vs rest ---------- */
           const xRecord  = holdings.find((o) => o.token.address === tokenAddress);
           const baseHold = holdings.filter((o) => o.token.address !== tokenAddress);
@@ -99,24 +105,27 @@ export async function GET(
 
           /* ---------- e. live X position facts ---------- */
           const sizeX    = parseFloat(xRecord.history_bought_cost || '0');
-          const pnlX     = parseFloat(xRecord.unrealized_pnl || '0');      // decimal
+          const uPnlX    = parseFloat(xRecord.unrealized_pnl || '0');
+          const rPnlX    = parseFloat(xRecord.realized_pnl || '0');      
           const start    = xRecord.start_holding_at ?? Math.floor(Date.now()/1000);
           const holdX    = (Date.now()/1000 - start) / 3600;               // h
           const muSize   = baseMetrics.avgPositionSizeUSD || 1;            // avoid /0
           const muHold   = baseMetrics.avgHoldTimeHours   || 1;
 
           /* ---------- f. sell score ---------- */
-          const score = computeSellScore(sizeX / muSize, holdX / muHold, pnlX);
-          const label = sellLabel(score);
+          const sellScore = computeSellScore(sizeX / muSize, holdX / muHold, (rPnlX + uPnlX));
+          const label = sellLabel(sellScore);
 
           return {
             address: h.address.address,
             short: abbreviateAddress(h.address.address),
             exposurePct: ((h.balance / (tokenSupply ?? 1)) * 100),
-            score,
+            sellScore,
             label,
             sizeX,
-            pnlX,
+            uPnlX,
+            rPnlX,
+            isFresh,
             holdHours: holdX,
             cashUSD,
             basePF: baseMetrics.profitFactor,
