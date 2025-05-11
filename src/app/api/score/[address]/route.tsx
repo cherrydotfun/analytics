@@ -50,6 +50,7 @@
  * basePF        wallet’s historical **Profit Factor** for *other* coins  
  *               (<1 = serial loser, >1.5 = shark, null = new wallet)
  * isFresh       a new wallet without much history
+ * tProfitUSD    realized + unrealized profit in USD
  *
  **/
 
@@ -74,7 +75,7 @@ export async function GET(
     /* 1) who are the whales?                             */
     /* -------------------------------------------------- */
     const { tokenName, tokenSymbol, topHolders, tokenSupply } = await getTopTokenHolders(tokenAddress);
-    const slice = topHolders.slice(0, 20);
+    const slice = topHolders.slice(0, 15);
 
     /* -------------------------------------------------- */
     /* 2) crunch each holder in parallel                  */
@@ -104,13 +105,14 @@ export async function GET(
           const cashUSD  = balance.solUSD + balance.stablesUSD;
 
           /* ---------- e. live X position facts ---------- */
-          const sizeX    = parseFloat(xRecord.history_bought_cost || '0');
-          const uPnlX    = parseFloat(xRecord.unrealized_pnl || '0');
-          const rPnlX    = parseFloat(xRecord.realized_pnl || '0');      
-          const start    = xRecord.start_holding_at ?? Math.floor(Date.now()/1000);
-          const holdX    = (Date.now()/1000 - start) / 3600;               // h
-          const muSize   = baseMetrics.avgPositionSizeUSD || 1;            // avoid /0
-          const muHold   = baseMetrics.avgHoldTimeHours   || 1;
+          const sizeX      = parseFloat(xRecord.history_bought_cost || '0');
+          const uPnlX      = parseFloat(xRecord.unrealized_pnl || '0');
+          const rPnlX      = parseFloat(xRecord.realized_pnl || '0');      
+          const start      = xRecord.start_holding_at ?? Math.floor(Date.now()/1000);
+          const holdX      = (Date.now()/1000 - start) / 3600; // h
+          const muSize     = baseMetrics.avgPositionSizeUSD || 1; // avoid /0
+          const muHold     = baseMetrics.avgHoldTimeHours   || 1;
+          const tProfitUSD = parseFloat(xRecord.unrealized_profit || '0'); + parseFloat(xRecord.realized_profit || '0');
 
           /* ---------- f. sell score ---------- */
           const sellScore = computeSellScore(sizeX / muSize, holdX / muHold, (rPnlX + uPnlX));
@@ -128,6 +130,7 @@ export async function GET(
             isFresh,
             holdHours: holdX,
             cashUSD,
+            tProfitUSD,
             basePF: baseMetrics.profitFactor,
           };
         } catch (err) {
