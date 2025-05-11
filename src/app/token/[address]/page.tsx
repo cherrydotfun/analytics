@@ -16,7 +16,7 @@ import { ClusterBalanceCard } from "@/components/widgets/cluster-balance-card"
 import { ClusterPnlCard } from "@/components/widgets/cluster-pnl-card"
 import { ClusterAssociatedAccountsForToken } from "@/components/widgets/cluster-token-card"
 import { ClusterAchievements } from "@/components/widgets/cluster-achievements-card"
-import { ClusterTopHoldings } from "@/components/widgets/cluster-top-holdings-card"
+import { HolderRiskTable } from "@/components/widgets/token-holders-stats-card"
 import { ClusterAddToWatchlist } from '@/components/widgets/cluster-add-to-watchlist';
 import Loader from '@/components/loader';
 import { toast } from 'sonner';
@@ -171,8 +171,10 @@ export default function Page() {
                 {/* cluster metrics */}
                 <div className="flex flex-col lg:flex-row  gap-4">
                   <div className="flex flex-col lg:w-1/2 gap-4">
-                    <TokenRugScoreCard rugCheckScore={data?.rugCheckInfo?.score_normalised || null} ddXyzScore={data?.ddXyzInfo?.overallRisk || null} />
-                    
+                    <TokenRugScoreCard 
+                      rugCheckScore={data?.rugCheckInfo?.score_normalised || null}
+                      ddXyzScore={data?.ddXyzInfo?.overallRisk || null}
+                      cherryDumpRisk={data?.riskInfo?.tokenSummary?.probDump1h ?? null} />
                   </div>
                   <TokenRisksCard risks={data?.rugCheckInfo?.risks || null } />
                   {/* <ClusterPnlCard pnlPerc={data.financials.pnlPerc} pnlUsd={data.financials.pnlUsd} unrealizedPnlUsd={data.financials.unrealizedPnlUsd} /> */}
@@ -180,11 +182,28 @@ export default function Page() {
                 </div>
 
                 {/* tabs */}
-
-                <ClusterAssociatedAccountsForToken
-                  clusters={data.clusters}
-                  className="w-full flex"
-                />
+                <Tabs defaultValue="accounts" className="flex w-full">
+                  <TabsList>
+                    <TabsTrigger value="accounts" className="cursor-pointer">
+                      Holders Connections
+                    </TabsTrigger>
+                    <TabsTrigger value="stats" className="cursor-pointer">
+                      Holders Stats
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="accounts">
+                    <ClusterAssociatedAccountsForToken
+                      clusters={data.clusters || []}
+                      className="w-full flex"
+                    />
+                  </TabsContent>
+                  <TabsContent value="stats">
+                    <HolderRiskTable
+                      holders={data.riskInfo?.holders || []}
+                      className="w-full flex"
+                    />
+                  </TabsContent>
+                </Tabs>
               </div>
             )}
           </SidebarInset>

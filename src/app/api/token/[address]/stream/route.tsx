@@ -15,7 +15,14 @@ export async function GET(
       getRugCheckScore(address),
       getDdXyzScore(address),
     ]);
+
+    const riskInfo = await fetch(
+        new URL(`/api/score/${address}`, process.env.NEXT_PUBLIC_BASE_URL),
+        { cache: 'no-store' }           // don’t serve a stale copy
+      ).then(r => r.ok ? r.json() : null);
   
+    // console.log(riskInfo);
+
     let topHoldersResp: any = null;
 
     try {
@@ -64,6 +71,7 @@ export async function GET(
             clusters,
             rugCheckInfo,
             ddXyzInfo,
+            riskInfo
         };
 
         sseWrite(`FINAL_RESULT: ${JSON.stringify(finalData)}`);
