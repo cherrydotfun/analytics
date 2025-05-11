@@ -212,7 +212,7 @@ async function processNode(
       return { address: r.entity_id, score: s, volumeUsd: vol };
     })
     .sort((a, b) => b.score - a.score)
-    .slice(0, 20); // top-20
+    .slice(0, 10); // top-10
 
   log(
     `[BFS] => Found ${associated.length}, took most relative addresses by volume for ${address}`
