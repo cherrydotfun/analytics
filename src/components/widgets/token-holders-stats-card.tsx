@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Copy } from "lucide-react";
@@ -15,19 +16,21 @@ import { handleCopy } from "@/lib/utils/copy-to-clipboard";
 
 /*  Type for clarity  */
 export interface HolderRow {
-  address:       string;   // full pubkey
-  short:         string;   // abbreviated display
-  exposurePct:   number;
-  sellScore:     number;   // 0-1
-  label:         string;   // Diamond / Neutral / …
-  sizeX:         number;   // USD cost basis
-  uPnlX:         number;   // unrealised ROI (dec)
-  rPnlX:         number;   // realised ROI (dec)
-  pnlDollarRatio: number;  // pnlDollarRatio the real one 
-  tProfitUSD:    number;   // total profit in USD
-  cashUSD:       number;
-  basePF:        number | null;
-  isFresh:       boolean;
+  address:        string;   // full pubkey
+  short:          string;   // abbreviated display
+  exposurePct:    number;
+  sellScore:      number;   // 0-1
+  label:          string;   // Diamond / Neutral / …
+  sizeX:          number;   // USD cost basis
+  uPnlX:          number;   // unrealised ROI (dec)
+  rPnlX:          number;   // realised ROI (dec)
+  pnlDollarRatio: number;   // pnlDollarRatio the real one 
+  tProfitUSD:     number;   // total profit in USD on the current token
+  cashUSD:        number;
+  basePF:         number | null;
+  isFresh:        boolean;
+  avgTotalPnlUSD: number;
+  avgWinRatePct:  number;
 }
 
 /*  Main table component  */
@@ -42,8 +45,10 @@ export function HolderRiskTable({ holders }: { holders: any[] }) {
           <TableHead className="text-right">Sell Probability</TableHead>
           <TableHead className="text-right">P/L&nbsp;%</TableHead>
           <TableHead className="text-right">Bet&nbsp;USD</TableHead>
-          <TableHead className="text-right">Total&nbsp;Profit&nbsp;USD</TableHead>
+          <TableHead className="text-right">Currrent&nbsp;PNL&nbsp;USD</TableHead>
           <TableHead className="text-right">Cash&nbsp;USD</TableHead>
+          <TableHead className="text-right">Avg&nbsp;Win-Rate</TableHead>
+          <TableHead className="text-right">Avg&nbsp;PNL&nbsp;USD</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -80,10 +85,21 @@ export function HolderRiskTable({ holders }: { holders: any[] }) {
 
             {/* Sell score coloured bar */}
             <TableCell className="text-right">
-              <span
-                className="inline-block h-2 w-16 rounded-full bg-muted"
-                style={{ background: `rgba(255,60,0,${h.sellScore})` }}
-              />
+                <TooltipProvider>
+                    <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span
+                        className="inline-block h-2 w-16 rounded-full bg-muted"
+                        style={{ background: `rgba(255,60,0,${h.sellScore})` }}
+                        />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center">
+                        <div className="text-sm font-medium">
+                        Chance of selling soon: {(h.sellScore * 100).toFixed(2)}%
+                        </div>
+                    </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </TableCell>
 
             {/* Total ROI */}
@@ -104,6 +120,16 @@ export function HolderRiskTable({ holders }: { holders: any[] }) {
             {/* Cash cushion */}
             <TableCell className="text-right">
               ${abbreviateNumber(h.cashUSD)}
+            </TableCell>
+
+            {/* avgWinRatePct */}
+            <TableCell className="text-right">
+              {abbreviateNumber(h.avgWinRatePct)}%
+            </TableCell>
+
+            {/* Avg pnl usd */}
+            <TableCell className="text-right">
+              ${abbreviateNumber(h.avgTotalPnlUSD)}
             </TableCell>
           </TableRow>
         ))}

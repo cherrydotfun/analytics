@@ -74,8 +74,8 @@ async function fetchRelativeWallets(address: string, onLog?: (msg: string) => vo
     } catch (err: any) {
       onLog?.(`[Fetching Relative Wallet Data] => Attempt ${attempt} failed for ${address}, error: ${err.message}`);
       if (attempt < 3) {
-        onLog?.(`[Fetching Relative Wallet Data] => Retrying in 3s...`);
-        await new Promise(res => setTimeout(res, 3000)); // wait 3s
+        onLog?.(`[Fetching Relative Wallet Data] => Retrying in 1s...`);
+        await new Promise(res => setTimeout(res, 1000)); // wait 3s
       } else {
         onLog?.(`[Fetching Relative Wallet Data] => Gave up after 3 attempts for ${address}`);
         return [];
@@ -212,7 +212,7 @@ async function processNode(
       return { address: r.entity_id, score: s, volumeUsd: vol };
     })
     .sort((a, b) => b.score - a.score)
-    .slice(0, 10); // top-10
+    .slice(0, 7); // top-10
 
   log(
     `[BFS] => Found ${associated.length}, took most relative addresses by volume for ${address}`

@@ -16,9 +16,9 @@ export function TokenRisksCard({
     return (
       <Card {...props} className="w-full h-full flex flex-col">
         <CardHeader>
-          <CardTitle>AI Risk Summary</CardTitle>
+          <CardTitle>AI Summary</CardTitle>
           <CardDescription>
-            Automated insights from Cherry Fun LLM
+            Automated insights from CherryFun AI agent
           </CardDescription>
         </CardHeader>
 

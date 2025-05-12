@@ -41,13 +41,13 @@ export function TokenRugScoreCard({
     <TooltipProvider>
       <Card className="w-full h-full" {...props}>
         <CardHeader>
-          <CardTitle>Rug risk</CardTitle>
+          <CardTitle>Dump Risk</CardTitle>
         </CardHeader>
 
         <CardContent className="grid gap-4">
           {/* RugCheck */}
           <div className="flex justify-between">
-            <div>RugCheck</div>
+            <div>RugCheck.xyz</div>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>{label(rugCheckScore, "external")}</div>

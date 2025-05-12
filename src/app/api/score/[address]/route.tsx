@@ -158,6 +158,8 @@ export async function GET(
             cashUSD,
             tProfitUSD,
             basePF: baseMetrics.profitFactor,
+            avgWinRatePct: baseMetrics.avgWinRatePct,
+            avgTotalPnlUSD: baseMetrics.avgTotalPnlUSD
           };
         } catch (err) {
           console.error('holder fail', h.address, err);
@@ -191,23 +193,12 @@ export async function GET(
     const richness = richnessArr[Math.floor(richnessArr.length / 2)]; // median
 
     /* -------------------------------------------------- */
-    /* 4) respond                                         */
+    /* 4) AI check                                        */
     /* -------------------------------------------------- */
-    const aiRes = await fetch(`${KB_IP}/getAiSummary`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            solAddress: tokenAddress,
-            riskSummary: {
-              token:          { name: tokenName, symbol: tokenSymbol, address: tokenAddress },
-              holdersAnalysed: perHolder.length,
-              tokenSummary:    { probDump1h, sharkShare, richness },
-              holders:         perHolder,
-            },
-          }),
-      });
-    console.log(aiRes);
-    const { summary: aiSummary } = aiRes.ok ? await aiRes.json() : { summary: null };
+    const resp = await fetch(
+        new URL(`/api/ai/${tokenAddress}`, process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'),
+    ).then(r => r.ok ? r.json() : null);
+    const aiSummary = resp.summary ?? [];
 
     /* -------------------------------------------------- */
     /* 5) respond                                         */

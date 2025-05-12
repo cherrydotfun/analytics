@@ -25,6 +25,8 @@ export interface IHoldingsDetailed {
 }
   
 export interface IWalletMetrics {
+    avgWinRatePct: number;
+    avgTotalPnlUSD: number;
     sampleSize: number;
     winRate: number;                 // 0-1
     avgRealisedPnl: number;          // mean ROI
