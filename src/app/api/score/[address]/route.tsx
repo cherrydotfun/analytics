@@ -193,15 +193,7 @@ export async function GET(
     const richness = richnessArr[Math.floor(richnessArr.length / 2)]; // median
 
     /* -------------------------------------------------- */
-    /* 4) AI check                                        */
-    /* -------------------------------------------------- */
-    const resp = await fetch(
-        new URL(`/api/ai/${tokenAddress}`, process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'),
-    ).then(r => r.ok ? r.json() : null);
-    const aiSummary = resp.summary ?? [];
-
-    /* -------------------------------------------------- */
-    /* 5) respond                                         */
+    /* 4) respond                                         */
     /* -------------------------------------------------- */
     return NextResponse.json({
       token: { name: tokenName, symbol: tokenSymbol, address: tokenAddress },
@@ -211,7 +203,6 @@ export async function GET(
         sharkShare,   // 0-1
         richness,     // median cash / pos
       },
-      aiSummary,
       holders: perHolder,
     });
   } catch (error) {

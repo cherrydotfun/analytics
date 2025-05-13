@@ -31,14 +31,6 @@ export async function GET(
       console.error('[SSE] → Error fetching top holders:', err);
     }
 
-    try {
-        topHoldersResp = await getTopTokenHolders(address);
-    } catch (err) {
-        console.error('[SSE] => Error fetching top holders:', err);
-        // gotta handle somehow
-        topHoldersResp = null;
-    }
-
     /* ───────────────── helpers ───────────────── */
     const { readable, writable } = new TransformStream();
     const writer  = writable.getWriter();
@@ -48,38 +40,43 @@ export async function GET(
 
     /* ───────────────── BFS + clusters ───────────────── */
     getHighScoreAssociations(
-        topHoldersResp?.topHolders.map((x: any) => x.address?.address),
+        topHoldersResp?.topHolders.slice(0,80).map((x: any) => x.address?.address),
         1,
         sseWrite
     )
-        .then((associations) => {
-        // build clusters **after** BFS so we have full account + link lists
-        const clusters = buildClusters(
-            associations.accounts,        // full account list from BFS
-            associations.accountLinks,    // full link list from BFS
-            topHoldersResp?.tokenSupply,
-            topHoldersResp?.topHolders
-        );
+        .then(async (associations) => {
+            // build clusters **after** BFS so we have full account + link lists
+            let clusters = buildClusters(
+                associations.accounts,        // full account list from BFS
+                associations.accountLinks,    // full link list from BFS
+                topHoldersResp?.tokenSupply,
+                topHoldersResp?.topHolders
+            );
+            // filter out single wallets
+            clusters = clusters.filter(x => x.accounts.length > 1);
+            console.log(clusters.length);
+            const resp = await fetch(
+                new URL(`/api/ai/${address}`, process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'),
+            ).then(r => r.ok ? r.json() : null);
+            const aiSummary = resp.summary ?? [];
 
-        console.log(clusters);
-
-        const finalData = {
-            id: address,
-            name:   topHoldersResp?.tokenName,
-            symbol: topHoldersResp?.tokenSymbol,
-            supply: topHoldersResp?.tokenSupply,
-            clusters,
-            rugCheckInfo,
-            ddXyzInfo,
-            riskInfo
-        };
-
-        sseWrite(`FINAL_RESULT: ${JSON.stringify(finalData)}`);
-        writer.close();
+            const finalData = {
+                id: address,
+                name:   topHoldersResp?.tokenName,
+                symbol: topHoldersResp?.tokenSymbol,
+                supply: topHoldersResp?.tokenSupply,
+                clusters,
+                rugCheckInfo,
+                ddXyzInfo,
+                riskInfo,
+                aiSummary
+            };
+            sseWrite(`FINAL_RESULT: ${JSON.stringify(finalData)}`);
+            writer.close();
         })
         .catch((err) => {
-        sseWrite(`ERROR: ${err.message}`);
-        writer.close();
+            sseWrite(`ERROR: ${err.message}`);
+            writer.close();
         });
 
     /* ───────────────── SSE response ───────────────── */

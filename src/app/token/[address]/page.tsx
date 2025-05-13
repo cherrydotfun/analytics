@@ -101,7 +101,7 @@ export default function Page() {
   const rugRisks: { name: string; level: string }[] = data?.rugCheckInfo?.risks ?? [];
 
   // 2) grab the AI “cons” bullets (defaulting to [])
-  const aiCons: string[] = data?.riskInfo?.aiSummary?.cons ?? [];
+  const aiCons: string[] = data?.aiSummary?.cons ?? [];
 
   // 3) turn those strings into risk objects
   const aiRisks = aiCons.map((text) => ({
@@ -110,7 +110,7 @@ export default function Page() {
   }));
 
   // 4) combine them
-  const combinedRisks = [...rugRisks, ...aiRisks];
+  const combinedRisks = [...aiRisks, ...rugRisks];
 
   // Auto-scroll logs to bottom whenever new lines are added
   useEffect(() => {

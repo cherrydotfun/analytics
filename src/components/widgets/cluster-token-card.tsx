@@ -89,7 +89,7 @@ const nodeColors = {
 /* ------------------------------------------------------------------ */
 const COMPONENT_SPACING    = 300;   // fcose space between components
 const CLUSTER_GAP          = 500;   // default gap for big clusters
-const FIT_PADDING          = 300;    // padding for cy.fit()
+const FIT_PADDING          = 600;    // padding for cy.fit()
 const INITIAL_ZOOM_FACTOR  = 0.9;   // start a tad zoomed‑out
 const SMALL_CLUSTER_GAP    = 120;  // gap for clusters < 10 wallets
 const ROW_GAP              = 200;  // vertical distance between rows
