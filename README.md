@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# cherry.fun
 
-## Getting Started
+## Overview
 
-First, run the development server:
+cherry.fun is a modern web application built with React and Next.js. Its purpose is to {project_purpose}.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Tech Stack
+
+- [React](https://reactjs.org/)
+- [Next.js](https://nextjs.org/)
+- [Node.js](https://nodejs.org/) (v22.11.0+)
+- [Yarn](https://yarnpkg.com/) (v1.22.22+)
+- [shadcn/ui](https://ui.shadcn.com/)
+- [Tailwind CSS](https://tailwindcss.com/)
+
+## Installation & Setup
+
+1. **Clone the repository:**
+   ```sh
+   git clone git@github.com:cherrydotfun/app.git cherry-web
+   cd cherry-web
+   ```
+
+2. **Install dependencies:**
+   ```sh
+   npx yarn install
+   ```
+
+3. **Configure environment variables:**
+   - Copy `env.example` to `.env.local` and update values as needed.
+   ```sh
+   cp env.example .env.local
+   ```
+
+## Development
+
+Start the development server:
+
+```sh
+npx yarn dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app will be available at [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+To run the app with a different port (for example, `4000`), use:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```sh
+npx yarn dev --port 4000
+```
 
-## Learn More
+## Production
 
-To learn more about Next.js, take a look at the following resources:
+Install all dependencies and build the app:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```sh
+npx yarn install
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+To run the app in production mode, you need to build it first. This will create an optimized version of your app in the `.next` directory.
 
-## Deploy on Vercel
+Build and start the production server:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```sh
+npx yarn build
+npx yarn start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Environment Variables
+
+Environment variables are managed via the `.env.local` file. See `.env.example` for required variables.
+
+## Folder Structure
+
+```
+/cherry-web/src/
+├── app/               # Next.js app routed components
+        ├── api/       # API endpoints
+├── components/        # Reusable React components
+├── public/            # Static assets
+├── lib/               # Utility functions
+├── hooks/             # Custom React hooks
+├── types/             # Shared TypeScript types
+├── env.example        # Example environment variables
+├── package.json
+└── ...
+```
