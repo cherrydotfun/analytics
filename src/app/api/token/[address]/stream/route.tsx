@@ -40,7 +40,7 @@ export async function GET(
 
     /* ───────────────── BFS + clusters ───────────────── */
     getHighScoreAssociations(
-        topHoldersResp?.topHolders.slice(0,80).map((x: any) => x.address?.address),
+        topHoldersResp?.topHolders.slice(0,69).map((x: any) => x.address?.address),
         1,
         sseWrite
     )
