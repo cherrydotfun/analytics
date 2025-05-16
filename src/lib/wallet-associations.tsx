@@ -1,6 +1,6 @@
 const KB_IP = process.env.CHERRY_KB;
 // number of workers to collect data
-const MAX_PARALLEL = 20;
+const MAX_PARALLEL = 15;
 
 /**
  * 1) Compute association score
@@ -59,7 +59,7 @@ export function computeAssociationScore(rel: any): number {
  *    waiting 3 seconds between each retry if fetch fails or !res.ok.
  */
 async function fetchRelativeWallets(address: string, onLog?: (msg: string) => void): Promise<any[]> {
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 1; attempt++) {
     onLog?.(`[Fetching Relative Wallet Data] => Attempt ${attempt} for ${address} ...`);
     try {
       const res = await fetch(`${KB_IP}/getRelativeWallets?solAddress=${address}`);
