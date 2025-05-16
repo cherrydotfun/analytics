@@ -2,7 +2,13 @@
 
 ## Overview
 
-cherry.fun is a modern web application built with React and Next.js. Its purpose is to {project_purpose}.
+cherry.fun helps traders spot real opportunities and avoid scams on Solana. It provides a suite of tools to analyze and track Solana tokens and wallets, including:
+
+- Wallet analytics: find hidden links between wallets and organise them into groups.
+- Token analytics: track token movements and identify potential scams.
+- Holder analytics: analyze the distribution of token holders and their activity.
+- Custom cluster analysis: create custom clusters of wallets and tokens for deeper analysis.
+- Visualization tools: visualize wallet and token data in an easy-to-understand format.
 
 ## Tech Stack
 
@@ -16,12 +22,14 @@ cherry.fun is a modern web application built with React and Next.js. Its purpose
 ## Installation & Setup
 
 1. **Clone the repository:**
+
    ```sh
    git clone git@github.com:cherrydotfun/app.git cherry-web
    cd cherry-web
    ```
 
 2. **Install dependencies:**
+
    ```sh
    npx yarn install
    ```
@@ -84,3 +92,9 @@ Environment variables are managed via the `.env.local` file. See `.env.example` 
 ├── package.json
 └── ...
 ```
+
+## Scripts
+
+- `npx yarn dev`: Start dev server
+- `npx yarn build`: Build for production
+- `npx yarn start`: Start production server
