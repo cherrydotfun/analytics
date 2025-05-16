@@ -67,7 +67,7 @@ export function HolderRiskTable({ holders }: { holders: any[] }) {
                   variant="link"
                   size="icon"
                   className="size-4"
-                  onClick={() => handleCopy(h.address)}
+                  onClick={(e) => handleCopy(e, h.address)}
                 >
                   <Copy className="size-3" />
                 </Button>

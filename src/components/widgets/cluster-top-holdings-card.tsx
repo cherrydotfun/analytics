@@ -60,7 +60,7 @@ function HoldingsTable({ holdings }: { holdings: any[] }) {
               <Button
                 variant={'link'}
                 className="size-5"
-                onClick={() => handleCopy(holding.ca)}
+                onClick={(e) => handleCopy(e, holding.ca)}
               ><Copy /></Button>
             </TableCell>
             <TableCell>${ abbreviateNumber(holding.valueUsd) }</TableCell>
