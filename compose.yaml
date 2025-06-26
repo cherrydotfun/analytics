@@ -1,0 +1,17 @@
+services:
+  web:
+    image: cherry-analytics:latest
+    build: .
+    restart: unless-stopped
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cherry-analytics.rule=Host(`analytics.cherry.fun`)"
+      - "traefik.http.routers.cherry-analytics.entrypoints=websecure"
+      - "traefik.http.routers.cherry-analytics.tls=true"
+      - "traefik.http.routers.cherry-analytics.tls.certresolver=tlschallenge"
+
+networks:
+  proxy:
+    external: true
